@@ -1,36 +1,166 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TMSU.CC - URL Shortener
 
-## Getting Started
+A Next.js URL shortener application for tommasomorganti.com domains.
 
-First, run the development server:
+## Features
 
+- 🔗 **URL Shortening**: Create short URLs for any tommasomorganti.com subdomain
+- 📊 **Dashboard**: Web interface to manage all shortened URLs
+- 🚀 **RESTful API**: Programmatic access for other services
+- 📈 **Click Tracking**: Monitor usage of your shortened URLs
+- 🗄️ **PostgreSQL**: Persistent storage with PostgreSQL database
+- 🎨 **Vibe Coded**: Claude wrote this, if it's broken blame him
+
+## Setup
+
+### Prerequisites
+
+- Node.js 24+ 
+- PostgreSQL database
+- pnpm package manager
+
+### Installation
+
+1. Clone the repository and install dependencies:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Set up your environment variables:
+```bash
+cp .env.example .env
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Edit `.env` and set your PostgreSQL connection string:
+```env
+DATABASE_URL=postgresql://username:password@host:port/database_name
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. Start the development server:
+```bash
+pnpm dev
+```
 
-## Learn More
+The application will be available at `http://localhost:6111`.
 
-To learn more about Next.js, take a look at the following resources:
+## Usage
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Dashboard
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Visit the root URL to access the web dashboard where you can:
+- Create new shortened URLs
+- View all existing URLs and their statistics
+- Edit existing URLs
+- Delete URLs
+- Copy short URLs to clipboard
 
-## Deploy on Vercel
+### API Endpoints
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+#### Create a short URL
+```bash
+POST /api/urls
+Content-Type: application/json
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+{
+  "url": "https://blog.tommasomorganti.com/some-article"
+}
+```
+
+Response:
+```json
+{
+  "id": "1",
+  "original_url": "https://blog.tommasomorganti.com/some-article",
+  "short_code": "abc12345",
+  "shortUrl": "https://tmsu.cc/abc12345",
+  "created_at": "2024-01-01T12:00:00.000Z",
+  "click_count": 0
+}
+```
+
+#### Get all URLs
+```bash
+GET /api/urls
+```
+
+#### Get specific URL
+```bash
+GET /api/urls/{shortCode}
+```
+
+#### Update a URL
+```bash
+PUT /api/urls/{shortCode}
+Content-Type: application/json
+
+{
+  "url": "https://new.tommasomorganti.com/updated-path"
+}
+```
+
+#### Delete a URL
+```bash
+DELETE /api/urls/{shortCode}
+```
+
+### URL Redirection
+
+Short URLs automatically redirect to their original destinations:
+```
+https://tmsu.cc/{shortCode} → https://original.tommasomorganti.com/path
+```
+
+## Domain Restrictions
+
+- **Source domains**: Only URLs from `*.tommasomorganti.com` or `tommasomorganti.com` are allowed
+- **Short URLs**: All shortened URLs use the `tmsu.cc` domain
+
+## Database Schema
+
+The application automatically creates the required database table:
+
+```sql
+CREATE TABLE urls (
+  id SERIAL PRIMARY KEY,
+  original_url TEXT NOT NULL,
+  short_code VARCHAR(10) UNIQUE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  click_count INTEGER DEFAULT 0
+);
+```
+
+## Technology Stack
+
+- **Framework**: Next.js 15 with App Router
+- **UI**: shadcn/ui components with Tailwind CSS
+- **Database**: PostgreSQL with pg driver
+- **Validation**: Zod
+- **ID Generation**: nanoid
+- **Notifications**: Sonner (toast notifications)
+
+## Development
+
+```bash
+# Install dependencies
+pnpm install
+
+# Start development server
+pnpm dev
+
+# Build for production
+pnpm build
+
+# Start production server
+pnpm start
+
+# Lint code
+pnpm lint
+
+# Format code
+pnpm format
+```
+
+## License
+
+MIT
