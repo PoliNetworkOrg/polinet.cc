@@ -25,8 +25,11 @@ export default function NotFound() {
             <li>• The short URL has been deleted</li>
             <li>• The URL has expired</li>
           </ul>
+          <Button asChild variant="outline" className="w-full">
+            <Link href="/admin">Go to Admin Dashboard</Link>
+          </Button>
           <Button asChild className="w-full">
-            <Link href="/">Go to Dashboard</Link>
+            <Link href="/">Go to tommasomorganti.com</Link>
           </Button>
         </CardContent>
       </Card>

@@ -20,6 +20,7 @@ export class UrlService {
   async getUrlByShortCode(shortCode: string): Promise<UrlRecord | null> {
     const query = "SELECT * FROM urls WHERE short_code = $1"
     const result = await this.pool.query(query, [shortCode])
+    console.log("Query result:", result.rows)
     return result.rows[0] || null
   }
 

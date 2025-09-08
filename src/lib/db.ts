@@ -1,4 +1,5 @@
 import { Pool } from "pg"
+import z from "zod"
 
 let pool: Pool | null = null
 
@@ -11,16 +12,18 @@ export function getPool(): Pool {
   return pool
 }
 
-export interface UrlRecord {
-  id: string
-  original_url: string
-  short_code: string
-  created_at: Date
-  updated_at: Date
-  click_count: number
-}
+export const URLRecord = z.object({
+  id: z.string(),
+  original_url: z.string().url(),
+  short_code: z.string().length(8),
+  created_at: z.date(),
+  updated_at: z.date(),
+  click_count: z.number().int().nonnegative(),
+})
 
-export async function initDatabase() {
+export type UrlRecord = z.infer<typeof URLRecord>
+
+async function initDatabase() {
   const pool = getPool()
 
   const createTableQuery = `
@@ -39,9 +42,13 @@ export async function initDatabase() {
 
   try {
     await pool.query(createTableQuery)
-    console.log("Database tables initialized successfully")
   } catch (error) {
     console.error("Error initializing database:", error)
-    throw error
   }
+}
+
+let init = false
+if (!init) {
+  initDatabase()
+  init = true
 }
