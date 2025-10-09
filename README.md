@@ -11,6 +11,19 @@ A Next.js URL shortener application for tommasomorganti.com domains.
 - 🗄️ **PostgreSQL**: Persistent storage with PostgreSQL database
 - 🎨 **Vibe Coded**: Claude wrote this, if it's broken blame him
 
+### Why?
+
+This thing is dead simple, and other services can integrate with it via API to create
+a butload of shortened URLs. Very cool, very free, which makes it even cooler.
+
+#### Yeah ok but why Next of all things???
+
+No good reason really, but it works, the REST API is handled with `ts-rest`, UI
+with `shadcn/ui`, allowing me to autogenerate both an `openapi.json` file and the
+docs for it with `@scalar/api-reference-react`.
+
+If I was to do it again I'd try `Hono` with SSG for the UI.
+
 ## Setup
 
 ### Prerequisites
@@ -26,12 +39,7 @@ A Next.js URL shortener application for tommasomorganti.com domains.
 pnpm install
 ```
 
-2. Set up your environment variables:
-```bash
-cp .env.example .env
-```
-
-Edit `.env` and set your PostgreSQL connection string:
+2. Edit `.env` and set your PostgreSQL connection string:
 ```env
 DATABASE_URL=postgresql://username:password@host:port/database_name
 ```
@@ -42,124 +50,6 @@ pnpm dev
 ```
 
 The application will be available at `http://localhost:6111`.
-
-## Usage
-
-### Dashboard
-
-Visit the root URL to access the web dashboard where you can:
-- Create new shortened URLs
-- View all existing URLs and their statistics
-- Edit existing URLs
-- Delete URLs
-- Copy short URLs to clipboard
-
-### API Endpoints
-
-#### Create a short URL
-```bash
-POST /api/urls
-Content-Type: application/json
-
-{
-  "url": "https://blog.tommasomorganti.com/some-article"
-}
-```
-
-Response:
-```json
-{
-  "id": "1",
-  "original_url": "https://blog.tommasomorganti.com/some-article",
-  "short_code": "abc12345",
-  "shortUrl": "https://tmsu.cc/abc12345",
-  "created_at": "2024-01-01T12:00:00.000Z",
-  "click_count": 0
-}
-```
-
-#### Get all URLs
-```bash
-GET /api/urls
-```
-
-#### Get specific URL
-```bash
-GET /api/urls/{shortCode}
-```
-
-#### Update a URL
-```bash
-PUT /api/urls/{shortCode}
-Content-Type: application/json
-
-{
-  "url": "https://new.tommasomorganti.com/updated-path"
-}
-```
-
-#### Delete a URL
-```bash
-DELETE /api/urls/{shortCode}
-```
-
-### URL Redirection
-
-Short URLs automatically redirect to their original destinations:
-```
-https://tmsu.cc/{shortCode} → https://original.tommasomorganti.com/path
-```
-
-## Domain Restrictions
-
-- **Source domains**: Only URLs from `*.tommasomorganti.com` or `tommasomorganti.com` are allowed
-- **Short URLs**: All shortened URLs use the `tmsu.cc` domain
-
-## Database Schema
-
-The application automatically creates the required database table:
-
-```sql
-CREATE TABLE urls (
-  id SERIAL PRIMARY KEY,
-  original_url TEXT NOT NULL,
-  short_code VARCHAR(10) UNIQUE NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  click_count INTEGER DEFAULT 0
-);
-```
-
-## Technology Stack
-
-- **Framework**: Next.js 15 with App Router
-- **UI**: shadcn/ui components with Tailwind CSS
-- **Database**: PostgreSQL with pg driver
-- **Validation**: Zod
-- **ID Generation**: nanoid
-- **Notifications**: Sonner (toast notifications)
-
-## Development
-
-```bash
-# Install dependencies
-pnpm install
-
-# Start development server
-pnpm dev
-
-# Build for production
-pnpm build
-
-# Start production server
-pnpm start
-
-# Lint code
-pnpm lint
-
-# Format code
-pnpm format
-```
 
 ## License
 

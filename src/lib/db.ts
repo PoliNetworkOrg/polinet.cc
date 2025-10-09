@@ -15,7 +15,7 @@ export function getPool(): Pool {
 export const URLRecord = z.object({
   id: z.string(),
   original_url: z.string().url(),
-  short_code: z.string().length(8),
+  short_code: z.string().min(3).max(20),
   created_at: z.date(),
   updated_at: z.date(),
   click_count: z.number().int().nonnegative(),
@@ -30,7 +30,7 @@ async function initDatabase() {
     CREATE TABLE IF NOT EXISTS urls (
       id SERIAL PRIMARY KEY,
       original_url TEXT NOT NULL,
-      short_code VARCHAR(10) UNIQUE NOT NULL,
+      short_code VARCHAR(25) UNIQUE NOT NULL,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       click_count INTEGER DEFAULT 0

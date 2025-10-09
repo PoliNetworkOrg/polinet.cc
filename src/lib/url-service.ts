@@ -4,8 +4,25 @@ import { getPool, type UrlRecord } from "./db"
 export class UrlService {
   private pool = getPool()
 
-  async createShortUrl(originalUrl: string): Promise<UrlRecord> {
-    const shortCode = nanoid(8)
+  async createShortUrl(
+    originalUrl: string,
+    customShortCode?: string
+  ): Promise<UrlRecord> {
+    let shortCode: string
+
+    if (customShortCode) {
+      // Check if custom short code already exists
+      const existingUrl = await this.getUrlByShortCode(customShortCode)
+      if (existingUrl) {
+        throw new Error(
+          "Short code already exists. Please choose a different one."
+        )
+      }
+      shortCode = customShortCode
+    } else {
+      // Generate a unique short code
+      shortCode = nanoid(8)
+    }
 
     const query = `
       INSERT INTO urls (original_url, short_code)

@@ -13,10 +13,23 @@ const handler = createNextHandler(
       }
     },
     createUrl: async ({ body }) => {
-      const urlRecord = await urlService.createShortUrl(body.url)
-      return {
-        status: 201,
-        body: urlRecord,
+      try {
+        const urlRecord = await urlService.createShortUrl(
+          body.url,
+          body.shortCode
+        )
+        return {
+          status: 201,
+          body: urlRecord,
+        }
+      } catch (error) {
+        return {
+          status: 400,
+          body: {
+            error:
+              error instanceof Error ? error.message : "Failed to create URL",
+          },
+        }
       }
     },
     getUrl: async ({ params }) => {
