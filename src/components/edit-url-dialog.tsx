@@ -84,7 +84,7 @@ export function EditUrlDialog({
           <DialogTitle>Edit Short URL</DialogTitle>
           <DialogDescription>
             Update the destination URL for{" "}
-            {url ? `tmsu.cc/${url.short_code}` : "this short URL"}.
+            {url ? `pnet.work/${url.short_code}` : "this short URL"}.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -107,7 +107,7 @@ export function EditUrlDialog({
               <Input
                 id="original-url"
                 type="url"
-                placeholder="https://example.tommasomorganti.com/path"
+                placeholder="https://example.polinetwork.org/path"
                 value={originalUrl}
                 onChange={(e) => setOriginalUrl(e.target.value)}
                 className="col-span-3"

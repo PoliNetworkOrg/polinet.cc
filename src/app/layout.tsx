@@ -4,8 +4,8 @@ import "./globals.css"
 import { Toaster } from "@/components/ui/sonner"
 
 export const metadata: Metadata = {
-  title: "tommaso morganti short urls",
-  description: "tommasomorganti.com, but shorter.",
+  title: "PoliNetwork Short URLs",
+  description: "polinetwork.org, but shorter.",
 }
 
 export default function RootLayout({

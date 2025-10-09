@@ -1,8 +1,8 @@
-# TMSU.cc AI Coding Instructions
+# pnet.work AI Coding Instructions
 
 ## Project Overview
 
-TMSU.cc is a specialized URL shortener for the tommasomorganti.com domain ecosystem. It uses Next.js 15 with App Router, PostgreSQL, and follows a contract-first API design pattern using ts-rest.
+pnet.work is a specialized URL shortener for the polinetwork.org domain ecosystem. It uses Next.js 15 with App Router, PostgreSQL, and follows a contract-first API design pattern using ts-rest.
 
 ## Architecture Patterns
 
@@ -11,9 +11,6 @@ TMSU.cc is a specialized URL shortener for the tommasomorganti.com domain ecosys
 - The contract serves as the single source of truth for API schema, routes, and validation
 - API handlers in `src/app/api/[...ts-rest]/route.ts` implement the contract using `createNextHandler`
 - OpenAPI documentation is auto-generated from the contract at `/api/openapi.json`
-
-### Domain Restrictions
-**Critical**: URLs are restricted to `*.tommasomorganti.com` or `tommasomorganti.com` domains only. This validation is enforced in `src/lib/validations.ts` using Zod refinement.
 
 ### Database Patterns
 - Uses PostgreSQL with raw SQL queries (no ORM)

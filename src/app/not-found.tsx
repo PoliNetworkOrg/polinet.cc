@@ -29,7 +29,7 @@ export default function NotFound() {
             <Link href="/admin">Go to Admin Dashboard</Link>
           </Button>
           <Button asChild className="w-full">
-            <Link href="/">Go to tommasomorganti.com</Link>
+            <Link href="/">Go to polinetwork.org</Link>
           </Button>
         </CardContent>
       </Card>

@@ -75,8 +75,8 @@ export function CreateUrlDialog({
         <DialogHeader>
           <DialogTitle>Create Short URL</DialogTitle>
           <DialogDescription>
-            Enter a URL from tommasomorganti.com domain to create a short URL.
-            Optionally specify a custom short code.
+            Enter a URL to create a short URL. Optionally specify a custom short
+            code.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -88,7 +88,7 @@ export function CreateUrlDialog({
               <Input
                 id="url"
                 type="url"
-                placeholder="https://example.tommasomorganti.com/path"
+                placeholder="https://example.polinetwork.org/path"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 className="col-span-3"

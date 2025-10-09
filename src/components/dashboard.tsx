@@ -101,7 +101,7 @@ export function Dashboard() {
         <div>
           <h1 className="text-3xl font-bold">URL Shortener Dashboard</h1>
           <p className="text-muted-foreground">
-            Manage your shortened URLs for tommasomorganti.com domains
+            Manage your shortened URLs for PoliNetwork domains
           </p>
         </div>
         <Button onClick={() => setCreateDialogOpen(true)}>
@@ -140,18 +140,20 @@ export function Dashboard() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <a
-                          href={`https://tmsu.cc/${url.short_code}`}
+                          href={`https://pnet.work/${url.short_code}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-600 hover:underline font-mono"
                         >
-                          tmsu.cc/{url.short_code}
+                          pnet.work/{url.short_code}
                         </a>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() =>
-                            copyToClipboard(`https://tmsu.cc/${url.short_code}`)
+                            copyToClipboard(
+                              `https://pnet.work/${url.short_code}`
+                            )
                           }
                         >
                           <Copy className="h-4 w-4" />
