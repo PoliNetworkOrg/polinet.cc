@@ -1,12 +1,17 @@
 import { Pool } from "pg"
 import z from "zod"
+import { env } from "@/env"
 
 let pool: Pool | null = null
 
 export function getPool(): Pool {
   if (!pool) {
     pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
+      host: env.DB_HOST,
+      port: env.DB_PORT,
+      user: env.DB_USER,
+      password: env.DB_PASS,
+      database: env.DB_NAME,
     })
   }
   return pool

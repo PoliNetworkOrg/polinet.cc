@@ -1,8 +1,8 @@
-# pnet.work AI Coding Instructions
+# polinet.cc AI Coding Instructions
 
 ## Project Overview
 
-pnet.work is a specialized URL shortener for the polinetwork.org domain ecosystem. It uses Next.js 15 with App Router, PostgreSQL, and follows a contract-first API design pattern using ts-rest.
+polinet.cc is a specialized URL shortener for the polinetwork.org domain ecosystem. It uses Next.js 15 with App Router, PostgreSQL, and follows a contract-first API design pattern using ts-rest.
 
 ## Architecture Patterns
 

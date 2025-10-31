@@ -84,7 +84,7 @@ export function EditUrlDialog({
           <DialogTitle>Edit Short URL</DialogTitle>
           <DialogDescription>
             Update the destination URL for{" "}
-            {url ? `pnet.work/${url.short_code}` : "this short URL"}.
+            {url ? `polinet.cc/${url.short_code}` : "this short URL"}.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>

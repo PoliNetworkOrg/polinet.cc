@@ -16,11 +16,11 @@ import { contract } from "@/lib/contract"
 
 const openapiDocument = generateOpenApi(contract, {
   info: {
-    title: "pnet.work API",
+    title: "polinet.cc API",
     version: "1.0.0",
     description: "PoliNetwork's Short URLs - Service API",
   },
-  servers: [{ url: "https://pnet.work/api" }],
+  servers: [{ url: "https://polinet.cc/api" }],
   components: {
     securitySchemes: {
       CloudflareID: {

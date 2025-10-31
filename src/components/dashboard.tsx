@@ -140,19 +140,19 @@ export function Dashboard() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <a
-                          href={`https://pnet.work/${url.short_code}`}
+                          href={`https://polinet.cc/${url.short_code}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-600 hover:underline font-mono"
                         >
-                          pnet.work/{url.short_code}
+                          polinet.cc/{url.short_code}
                         </a>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() =>
                             copyToClipboard(
-                              `https://pnet.work/${url.short_code}`
+                              `https://polinet.cc/${url.short_code}`
                             )
                           }
                         >
