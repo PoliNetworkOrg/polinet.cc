@@ -1,4 +1,4 @@
-# pnet.work - URL Shortener
+# polinet.cc - URL Shortener
 
 A Next.js URL shortener application for polinetwork.org domains.
 
