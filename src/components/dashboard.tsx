@@ -1,7 +1,6 @@
 "use client"
 
-import { Copy, Edit, ExternalLink, Trash2 } from "lucide-react"
-import { useCallback, useEffect, useState } from "react"
+import { useState } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import {
@@ -14,52 +13,24 @@ import {
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { useUrls } from "@/hooks/urls"
+import type { UrlRecord } from "@/lib/schemas"
 import { CreateUrlDialog } from "./create-url-dialog"
 import { EditUrlDialog } from "./edit-url-dialog"
-
-interface UrlRecord {
-  id: string
-  original_url: string
-  short_code: string
-  created_at: string
-  updated_at: string
-  click_count: number
-}
+import { UrlEntry } from "./url-entry"
 
 export function Dashboard() {
-  const [urls, setUrls] = useState<UrlRecord[]>([])
-  const [loading, setLoading] = useState(true)
+  const { urls, loading, fetchUrls } = useUrls()
+
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialog, setEditDialog] = useState<{
     open: boolean
     url?: UrlRecord
   }>({ open: false })
-
-  const fetchUrls = useCallback(async () => {
-    try {
-      const response = await fetch("/api/urls")
-      if (response.ok) {
-        const data = await response.json()
-        setUrls(data)
-      } else {
-        toast.error("Failed to fetch URLs")
-      }
-    } catch (error) {
-      console.error("Error fetching URLs:", error)
-      toast.error("Failed to fetch URLs")
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchUrls()
-  }, [fetchUrls])
 
   const handleDelete = async (shortCode: string) => {
     if (!confirm("Are you sure you want to delete this URL?")) return
@@ -89,10 +60,6 @@ export function Dashboard() {
       console.error("Error copying to clipboard:", error)
       toast.error("Failed to copy to clipboard")
     }
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString()
   }
 
   return (
@@ -136,71 +103,15 @@ export function Dashboard() {
               </TableHeader>
               <TableBody>
                 {urls.map((url) => (
-                  <TableRow key={url.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <a
-                          href={`https://polinet.cc/${url.short_code}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline font-mono"
-                        >
-                          polinet.cc/{url.short_code}
-                        </a>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            copyToClipboard(
-                              `https://polinet.cc/${url.short_code}`
-                            )
-                          }
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className="truncate max-w-[300px]">
-                          {url.original_url}
-                        </span>
-                        <a
-                          href={url.original_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                        </a>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-medium">{url.click_count}</span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm text-muted-foreground">
-                        {formatDate(url.created_at)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setEditDialog({ open: true, url })}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(url.short_code)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                  <UrlEntry
+                    key={url.id}
+                    url={url}
+                    onCopy={(url) =>
+                      copyToClipboard(`https://polinet.cc/${url.short_code}`)
+                    }
+                    onDelete={(url) => handleDelete(url.short_code)}
+                    onEdit={(url) => setEditDialog({ open: true, url })}
+                  />
                 ))}
               </TableBody>
             </Table>

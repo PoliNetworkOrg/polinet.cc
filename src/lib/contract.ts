@@ -1,6 +1,6 @@
 import { initContract } from "@ts-rest/core"
 import z from "zod"
-import { URLRecord } from "./db"
+import { URLRecord } from "./schemas"
 import { createUrlSchema } from "./validations"
 
 const c = initContract()

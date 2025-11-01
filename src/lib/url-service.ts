@@ -1,5 +1,6 @@
 import { nanoid } from "nanoid"
-import { getPool, type UrlRecord } from "./db"
+import { getPool } from "./db"
+import type { UrlRecord } from "./schemas"
 
 export class UrlService {
   private pool = getPool()

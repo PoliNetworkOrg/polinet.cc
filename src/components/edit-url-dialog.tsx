@@ -13,15 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-
-interface UrlRecord {
-  id: string
-  original_url: string
-  short_code: string
-  created_at: string
-  updated_at: string
-  click_count: number
-}
+import type { UrlRecord } from "@/lib/schemas"
 
 interface EditUrlDialogProps {
   open: boolean

@@ -16,6 +16,7 @@ export const env = createEnv({
     DB_USER: z.string().min(1),
     DB_PASS: z.string().min(1),
     DB_NAME: z.string().min(3).default("url_shortener"),
+    DB_URL: z.string().url().optional(),
   },
 
   runtimeEnv: {
@@ -26,6 +27,7 @@ export const env = createEnv({
     DB_PASS: process.env.DB_PASS,
     DB_NAME: process.env.DB_NAME,
     NODE_ENV: process.env.NODE_ENV,
+    DB_URL: process.env.DB_URL,
   },
 
   /**

@@ -1,32 +1,26 @@
-import { Pool } from "pg"
-import z from "zod"
+import { Pool, type PoolConfig } from "pg"
 import { env } from "@/env"
 
 let pool: Pool | null = null
 
-export function getPool(): Pool {
-  if (!pool) {
-    pool = new Pool({
+const DB_CONNECTION: PoolConfig = env.DB_URL
+  ? {
+      connectionString: env.DB_URL,
+    }
+  : {
       host: env.DB_HOST,
       port: env.DB_PORT,
       user: env.DB_USER,
       password: env.DB_PASS,
       database: env.DB_NAME,
-    })
+    }
+
+export function getPool(): Pool {
+  if (!pool) {
+    pool = new Pool({ ...DB_CONNECTION })
   }
   return pool
 }
-
-export const URLRecord = z.object({
-  id: z.string(),
-  original_url: z.string().url(),
-  short_code: z.string().min(3).max(20),
-  created_at: z.date(),
-  updated_at: z.date(),
-  click_count: z.number().int().nonnegative(),
-})
-
-export type UrlRecord = z.infer<typeof URLRecord>
 
 async function initDatabase() {
   const pool = getPool()
