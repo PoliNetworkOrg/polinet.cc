@@ -1,35 +1,51 @@
-import { useCallback, useEffect, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { URLRecords, type UrlRecord } from "@/lib/schemas"
+import { PaginatedUrlsResponse, type UrlsQueryParams } from "@/lib/schemas"
 
-export function useUrls() {
-  const [urls, setUrls] = useState<UrlRecord[]>([])
-  const [loading, setLoading] = useState(true)
+async function fetchUrls(params: UrlsQueryParams) {
+  const queryParams = new URLSearchParams()
 
-  const fetchUrls = useCallback(async () => {
-    try {
-      const response = await fetch("/api/urls")
-      if (response.ok) {
-        const data = URLRecords.parse(await response.json())
-        setUrls(data)
-      } else {
-        toast.error("Failed to fetch URLs")
-      }
-    } catch (error) {
-      console.error("Error fetching URLs:", error)
-      toast.error("Failed to fetch URLs")
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  if (params.page) queryParams.set("page", params.page.toString())
+  if (params.limit) queryParams.set("limit", params.limit.toString())
+  if (params.search) queryParams.set("search", params.search)
+  if (params.sortBy) queryParams.set("sortBy", params.sortBy)
+  if (params.sortOrder) queryParams.set("sortOrder", params.sortOrder)
 
-  useEffect(() => {
-    fetchUrls()
-  }, [fetchUrls])
+  const response = await fetch(`/api/urls?${queryParams.toString()}`)
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch URLs")
+  }
+
+  return PaginatedUrlsResponse.parse(await response.json())
+}
+
+export function useUrls(params: UrlsQueryParams = {}) {
+  const keys = Object.values(params).map((value) => value ?? "")
+  const query = useQuery({
+    queryKey: ["urls", ...keys],
+    queryFn: () =>
+      fetchUrls(params)
+        .then((d) => {
+          console.log(d)
+          return d
+        })
+        .catch((error) => {
+          console.error("Error fetching URLs:", error)
+          throw error
+        }),
+    staleTime: 1000 * 60, // 1 minute
+  })
+
+  if (query.error) {
+    toast.error("Failed to fetch URLs")
+  }
 
   return {
-    urls,
-    loading,
-    fetchUrls,
+    urls: query.data?.urls ?? [],
+    pagination: query.data?.pagination,
+    loading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
   }
 }

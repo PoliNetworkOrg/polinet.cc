@@ -5,11 +5,17 @@ import { urlService } from "@/lib/url-service"
 const handler = createNextHandler(
   contract,
   {
-    getAllUrls: async () => {
-      const urls = await urlService.getAllUrls()
+    getAllUrls: async ({ query }) => {
+      const result = await urlService.getAllUrls({
+        page: query.page,
+        limit: query.limit,
+        search: query.search,
+        sortBy: query.sortBy,
+        sortOrder: query.sortOrder,
+      })
       return {
         status: 200,
-        body: urls,
+        body: result,
       }
     },
     createUrl: async ({ body }) => {

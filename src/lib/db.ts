@@ -37,6 +37,8 @@ async function initDatabase() {
     
     CREATE INDEX IF NOT EXISTS idx_short_code ON urls(short_code);
     CREATE INDEX IF NOT EXISTS idx_created_at ON urls(created_at);
+    CREATE INDEX IF NOT EXISTS idx_updated_at ON urls(updated_at);
+    CREATE INDEX IF NOT EXISTS idx_click_count ON urls(click_count);
   `
 
   try {

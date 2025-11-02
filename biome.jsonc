@@ -13,7 +13,8 @@
       "!.next",
       "!dist",
       "!build",
-      "!src/app/globals.css" // modified by shadcn
+      "!src/app/globals.css", // modified by shadcn
+      "!src/components/ui/*" // modified by shadcn
     ]
   },
   "formatter": {

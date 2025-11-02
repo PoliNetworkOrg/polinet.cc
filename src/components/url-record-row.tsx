@@ -3,14 +3,14 @@ import type { UrlRecord } from "@/lib/schemas"
 import { Button } from "./ui/button"
 import { TableCell, TableRow } from "./ui/table"
 
-export type UrlEntryProps = {
+export type UrlRecordRowProps = {
   url: UrlRecord
   onCopy: (url: UrlRecord) => void
   onDelete: (url: UrlRecord) => void
   onEdit: (url: UrlRecord) => void
 }
 
-export function UrlEntry({ url, ...props }: UrlEntryProps) {
+export function UrlRecordRow({ url, ...props }: UrlRecordRowProps) {
   return (
     <TableRow key={url.id}>
       <TableCell>

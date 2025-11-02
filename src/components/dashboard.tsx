@@ -1,7 +1,9 @@
 "use client"
 
+import { Search } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import { useDebounce } from "use-debounce"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -10,6 +12,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -18,19 +28,53 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useUrls } from "@/hooks/urls"
-import type { UrlRecord } from "@/lib/schemas"
+import type { UrlRecord, UrlsQueryParams } from "@/lib/schemas"
 import { CreateUrlDialog } from "./create-url-dialog"
 import { EditUrlDialog } from "./edit-url-dialog"
-import { UrlEntry } from "./url-entry"
+import { PaginationControls } from "./pagination"
+import { UrlRecordRow } from "./url-record-row"
 
 export function Dashboard() {
-  const { urls, loading, fetchUrls } = useUrls()
+  const [searchInput, setSearchInput] = useState("")
+  const [debouncedSearch] = useDebounce(searchInput, 300)
+  const [qp, setQueryParams] = useState<UrlsQueryParams>({
+    page: 1,
+    limit: 10,
+    sortBy: "created_at",
+    sortOrder: "desc",
+  })
+  // Merge debounced search with query params
+  const queryParams: UrlsQueryParams = {
+    ...qp,
+    search: debouncedSearch || undefined,
+  }
+
+  const { urls, pagination, loading, refetch } = useUrls(queryParams)
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialog, setEditDialog] = useState<{
     open: boolean
     url?: UrlRecord
   }>({ open: false })
+
+  const handleSortChange = (value: string) => {
+    const [sortBy, sortOrder] = value.split("-") as [
+      UrlsQueryParams["sortBy"],
+      UrlsQueryParams["sortOrder"],
+    ]
+    setQueryParams((prev) => ({
+      ...prev,
+      sortBy,
+      sortOrder,
+    }))
+  }
+
+  const handlePageChange = (page: number) => {
+    setQueryParams((prev) => ({ ...prev, page }))
+  }
+  const handleLimitChange = (limit: number) => {
+    setQueryParams((prev) => ({ ...prev, limit, page: 1 }))
+  }
 
   const handleDelete = async (shortCode: string) => {
     if (!confirm("Are you sure you want to delete this URL?")) return
@@ -42,7 +86,7 @@ export function Dashboard() {
 
       if (response.ok) {
         toast.success("URL deleted successfully")
-        fetchUrls()
+        refetch()
       } else {
         toast.error("Failed to delete URL")
       }
@@ -61,6 +105,8 @@ export function Dashboard() {
       toast.error("Failed to copy to clipboard")
     }
   }
+
+  const currentSort = `${qp.sortBy}-${qp.sortOrder}`
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -83,38 +129,81 @@ export function Dashboard() {
             All your shortened URLs and their statistics
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {/* Filters */}
+          <div className="flex gap-4 items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search URLs or short codes..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Select value={currentSort} onValueChange={handleSortChange}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="created_at-desc">Newest First</SelectItem>
+                <SelectItem value="created_at-asc">Oldest First</SelectItem>
+                <SelectItem value="updated_at-desc">
+                  Recently Updated
+                </SelectItem>
+                <SelectItem value="click_count-desc">Most Clicks</SelectItem>
+                <SelectItem value="click_count-asc">Least Clicks</SelectItem>
+                <SelectItem value="short_code-asc">Short Code A-Z</SelectItem>
+                <SelectItem value="short_code-desc">Short Code Z-A</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Table */}
           {loading ? (
             <div className="text-center py-6">Loading...</div>
           ) : urls.length === 0 ? (
             <div className="text-center py-6 text-muted-foreground">
-              No URLs found. Create your first short URL to get started.
+              {searchInput
+                ? "No URLs found matching your search."
+                : "No URLs found. Create your first short URL to get started."}
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Short URL</TableHead>
-                  <TableHead>Original URL</TableHead>
-                  <TableHead>Clicks</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {urls.map((url) => (
-                  <UrlEntry
-                    key={url.id}
-                    url={url}
-                    onCopy={(url) =>
-                      copyToClipboard(`https://polinet.cc/${url.short_code}`)
-                    }
-                    onDelete={(url) => handleDelete(url.short_code)}
-                    onEdit={(url) => setEditDialog({ open: true, url })}
-                  />
-                ))}
-              </TableBody>
-            </Table>
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Short URL</TableHead>
+                    <TableHead>Original URL</TableHead>
+                    <TableHead>Clicks</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {urls.map((url: UrlRecord) => (
+                    <UrlRecordRow
+                      key={url.id}
+                      url={url}
+                      onCopy={(url) =>
+                        copyToClipboard(`https://polinet.cc/${url.short_code}`)
+                      }
+                      onDelete={(url) => handleDelete(url.short_code)}
+                      onEdit={(url) => setEditDialog({ open: true, url })}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+
+              {/* Pagination */}
+              {pagination && (
+                <PaginationControls
+                  {...pagination}
+                  onPageChange={handlePageChange}
+                  onLimitChange={handleLimitChange}
+                />
+              )}
+            </>
           )}
         </CardContent>
       </Card>
@@ -123,7 +212,7 @@ export function Dashboard() {
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         onSuccess={() => {
-          fetchUrls()
+          refetch()
           setCreateDialogOpen(false)
         }}
       />
@@ -135,7 +224,7 @@ export function Dashboard() {
           setEditDialog({ open, url: undefined })
         }
         onSuccess={() => {
-          fetchUrls()
+          refetch()
           setEditDialog({ open: false })
         }}
       />

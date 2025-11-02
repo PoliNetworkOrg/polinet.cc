@@ -1,6 +1,6 @@
 import { initContract } from "@ts-rest/core"
 import z from "zod"
-import { URLRecord } from "./schemas"
+import { GetUrlsQueryParams, PaginatedUrlsResponse, URLRecord } from "./schemas"
 import { createUrlSchema } from "./validations"
 
 const c = initContract()
@@ -13,10 +13,11 @@ export const contract = c.router({
   getAllUrls: {
     method: "GET",
     path: "/urls",
+    query: GetUrlsQueryParams,
     responses: {
-      200: z.array(URLRecord),
+      200: PaginatedUrlsResponse,
     },
-    summary: "Get all URLs",
+    summary: "Get all URLs with pagination and filters",
   },
   getUrl: {
     method: "GET",
