@@ -1,6 +1,7 @@
 "use client"
 
 import { Search } from "lucide-react"
+import Link from "next/link"
 import { useState } from "react"
 import { toast } from "sonner"
 import { useDebounce } from "use-debounce"
@@ -117,9 +118,14 @@ export function Dashboard() {
             Manage your shortened URLs for PoliNetwork domains
           </p>
         </div>
-        <Button onClick={() => setCreateDialogOpen(true)}>
-          Create Short URL
-        </Button>
+        <div className="flex gap-4">
+          <Link href="/api">
+            <Button variant="outline">API Docs</Button>
+          </Link>
+          <Button onClick={() => setCreateDialogOpen(true)}>
+            Create Short URL
+          </Button>
+        </div>
       </div>
 
       <Card>
