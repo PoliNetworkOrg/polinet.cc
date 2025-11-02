@@ -58,3 +58,5 @@ Dockerfile*
 # Logs
 logs
 *.log
+
+.buildx-cache/

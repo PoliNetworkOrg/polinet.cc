@@ -49,7 +49,17 @@ async function initDatabase() {
 }
 
 let init = false
-if (!init) {
-  initDatabase()
+// Skip initialization if env where not validated
+// this doesn't prevent DB calls to be made, but if the env is not validated
+// it probably means that DB calls will not be made anyway (e.g. during builds)
+// and if they are made, they'll probably fail, as will this initialization
+if (!init && !process.env.SKIP_ENV_VALIDATION) {
   init = true
+  initDatabase()
+    .then(() => {
+      console.log("Database initialized successfully")
+    })
+    .catch((error) => {
+      console.error("Error during database initialization:", error)
+    })
 }
