@@ -42,7 +42,7 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Copy the public folder from the project as it's not included in the build output
-COPY --from=builder /app/public ./public
+COPY --from=builder /app/public* ./public
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
