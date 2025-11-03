@@ -32,6 +32,7 @@ export function PaginationControls(
       props.onLimitChange(newLimit)
     }
   }
+  console.log(props.page, props.totalPages)
 
   return (
     <div className="flex items-center justify-between">
@@ -80,14 +81,14 @@ export function PaginationControls(
           <PaginationItem>
             <PaginationNext
               onClick={() => {
-                if (props.page < props.total) {
+                if (props.page < props.totalPages) {
                   props.onPageChange(props.page + 1)
                 }
               }}
               className={
-                props.page === props.total
-                  ? "pointer-events-none opacity-50"
-                  : "cursor-pointer"
+                props.page < props.totalPages
+                  ? "cursor-pointer"
+                  : "pointer-events-none opacity-50"
               }
             />
           </PaginationItem>
