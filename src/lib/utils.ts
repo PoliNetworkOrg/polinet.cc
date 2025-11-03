@@ -1,4 +1,5 @@
 import { type ClassValue, clsx } from "clsx"
+import { toast } from "sonner"
 import { twMerge } from "tailwind-merge"
 
 export function cn(...inputs: ClassValue[]) {
@@ -21,4 +22,14 @@ export function withPages(current: number, total: number) {
         ellipses,
       }
     })
+}
+
+export const copyToClipboard = async (text: string) => {
+  try {
+    await navigator.clipboard.writeText(text)
+    toast.success("Copied to clipboard")
+  } catch (error) {
+    console.error("Error copying to clipboard:", error)
+    toast.error("Failed to copy to clipboard")
+  }
 }

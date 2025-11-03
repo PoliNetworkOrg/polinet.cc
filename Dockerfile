@@ -23,7 +23,6 @@ RUN --mount=type=cache,id=pnpm,target=./pnpm/store pnpm install --frozen-lockfil
 FROM base AS builder
 
 COPY --from=deps /app/node_modules ./node_modules
-RUN pwd
 COPY . .
 
 # Next.js collects completely anonymous telemetry data about general usage.

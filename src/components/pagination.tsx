@@ -1,4 +1,5 @@
 import { useState } from "react"
+import type { PaginatedUrlsResponse } from "@/lib/schemas"
 import { withPages } from "@/lib/utils"
 import {
   Pagination,
@@ -16,13 +17,12 @@ import {
   SelectValue,
 } from "./ui/select"
 
-export function PaginationControls(props: {
-  page: number
-  limit: number
-  total: number
-  onPageChange: (page: number) => void
-  onLimitChange?: (limit: number) => void
-}) {
+export function PaginationControls(
+  props: {
+    onPageChange: (page: number) => void
+    onLimitChange?: (limit: number) => void
+  } & PaginatedUrlsResponse["pagination"]
+) {
   const [limit, setLimit] = useState(props.limit)
 
   const handleLimitChange = (value: string) => {
@@ -56,7 +56,7 @@ export function PaginationControls(props: {
             />
           </PaginationItem>
 
-          {withPages(props.page, props.total).map(({ page, ellipses }) => {
+          {withPages(props.page, props.totalPages).map(({ page, ellipses }) => {
             return (
               <div key={page} className="flex">
                 {ellipses && (

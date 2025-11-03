@@ -10,6 +10,7 @@ async function fetchUrls(params: UrlsQueryParams) {
   if (params.search) queryParams.set("search", params.search)
   if (params.sortBy) queryParams.set("sortBy", params.sortBy)
   if (params.sortOrder) queryParams.set("sortOrder", params.sortOrder)
+  if (params.customOnly) queryParams.set("customOnly", "true")
 
   const response = await fetch(`/api/urls?${queryParams.toString()}`)
 

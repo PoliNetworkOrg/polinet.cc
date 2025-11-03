@@ -12,6 +12,7 @@ const handler = createNextHandler(
         search: query.search,
         sortBy: query.sortBy,
         sortOrder: query.sortOrder,
+        customOnly: query.customOnly,
       })
       return {
         status: 200,

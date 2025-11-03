@@ -55,42 +55,46 @@ export class UrlService {
       limit = 10,
       search,
       sortBy = "created_at",
+      customOnly = false,
       sortOrder = "desc",
     } = options
 
+    const sb = [
+      "created_at",
+      "updated_at",
+      "click_count",
+      "short_code",
+    ].includes(sortBy)
+      ? sortBy
+      : "created_at"
+
     const offset = (page - 1) * limit
-    const params: (string | number)[] = []
-    let paramIndex = 1
+    const queryParams = [!search, `%${search}%`, !customOnly, limit, offset]
 
-    // Build WHERE clause for search
-    let whereClause = ""
-    if (search) {
-      whereClause = `WHERE (original_url ILIKE $${paramIndex} OR short_code ILIKE $${paramIndex})`
-      params.push(`%${search}%`)
-      paramIndex++
-    }
-
-    // Build ORDER BY clause
-    const orderClause = `ORDER BY ${sortBy} ${sortOrder.toUpperCase()}`
-
-    // Get total count
-    const countQuery = `SELECT COUNT(*) FROM urls ${whereClause}`
-    const countResult = await this.pool.query(countQuery, params)
-    const total = parseInt(countResult.rows[0].count, 10)
-
-    // Get paginated results
-    const dataQuery = `
+    const [dataResult, totals] = await Promise.all([
+      this.pool.query(
+        `
       SELECT * FROM urls 
-      ${whereClause}
-      ${orderClause}
-      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-    `
-    params.push(limit, offset)
+      WHERE ($1 OR (original_url ILIKE $2 OR short_code ILIKE $2)) AND ($3 OR is_custom = TRUE)
+      ORDER BY ${sb} ${sortOrder === "asc" ? "ASC" : "DESC"}
+      LIMIT $4 OFFSET $5
+    `,
+        queryParams
+      ),
+      this.pool.query(
+        `
+      SELECT COUNT(*) FROM urls 
+      WHERE ($1 OR (original_url ILIKE $2 OR short_code ILIKE $2)) AND ($3 OR is_custom = TRUE)
+    `,
+        queryParams.slice(0, 3)
+      ),
+    ])
 
-    const dataResult = await this.pool.query(dataQuery, params)
+    const total = parseInt(totals.rows[0].count, 10)
+    const urls = URLRecords.parse(dataResult.rows)
 
     return {
-      urls: URLRecords.parse(dataResult.rows),
+      urls,
       pagination: {
         page,
         limit,

@@ -2,6 +2,7 @@ import { z } from "zod"
 
 export const URLRecord = z.object({
   id: z.coerce.number(),
+  is_custom: z.boolean(),
   original_url: z.string().url(),
   short_code: z.string().min(3).max(20),
   created_at: z.coerce.date(),
@@ -32,6 +33,7 @@ export const GetUrlsQueryParams = z.object({
     .optional()
     .default("created_at"),
   sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
+  customOnly: z.coerce.boolean().optional().default(false),
 })
 
 export type PaginatedUrlsResponse = z.infer<typeof PaginatedUrlsResponse>

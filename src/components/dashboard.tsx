@@ -1,10 +1,12 @@
 "use client"
 
-import { Search } from "lucide-react"
+import { Search, Star } from "lucide-react"
+import Image from "next/image"
 import Link from "next/link"
 import { useState } from "react"
 import { toast } from "sonner"
 import { useDebounce } from "use-debounce"
+import logo from "@/assets/logo.png"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -30,9 +32,11 @@ import {
 } from "@/components/ui/table"
 import { useUrls } from "@/hooks/urls"
 import type { UrlRecord, UrlsQueryParams } from "@/lib/schemas"
+import { copyToClipboard } from "@/lib/utils"
 import { CreateUrlDialog } from "./create-url-dialog"
 import { EditUrlDialog } from "./edit-url-dialog"
 import { PaginationControls } from "./pagination"
+import { Toggle } from "./ui/toggle"
 import { UrlRecordRow } from "./url-record-row"
 
 export function Dashboard() {
@@ -57,6 +61,14 @@ export function Dashboard() {
     open: boolean
     url?: UrlRecord
   }>({ open: false })
+
+  const handleCustomOnlyToggle = () => {
+    setQueryParams((prev) => ({
+      ...prev,
+      customOnly: !prev.customOnly,
+      page: 1,
+    }))
+  }
 
   const handleSortChange = (value: string) => {
     const [sortBy, sortOrder] = value.split("-") as [
@@ -97,22 +109,13 @@ export function Dashboard() {
     }
   }
 
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      toast.success("Copied to clipboard")
-    } catch (error) {
-      console.error("Error copying to clipboard:", error)
-      toast.error("Failed to copy to clipboard")
-    }
-  }
-
   const currentSort = `${qp.sortBy}-${qp.sortOrder}`
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
+      <div className="flex gap-4 items-center">
+        <Image src={logo} alt="PoliNetwork Logo" className="h-16 w-16" />
+        <div className="mr-auto">
           <h1 className="text-3xl font-bold">URL Shortener Dashboard</h1>
           <p className="text-muted-foreground">
             Manage your shortened URLs for PoliNetwork domains
@@ -163,6 +166,14 @@ export function Dashboard() {
                 <SelectItem value="short_code-desc">Short Code Z-A</SelectItem>
               </SelectContent>
             </Select>
+            <Toggle
+              pressed={queryParams.customOnly}
+              onPressedChange={handleCustomOnlyToggle}
+              className="data-[state=on]:bg-secondary data-[state=on]:*:[svg]:fill-yellow-300 data-[state=on]:*:[svg]:stroke-yellow-300"
+            >
+              <Star className="h-4 w-4" />
+              Show Custom Only
+            </Toggle>
           </div>
 
           {/* Table */}
@@ -179,11 +190,14 @@ export function Dashboard() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-4">
+                      <Star className="h-4 w-4" />
+                    </TableHead>
                     <TableHead>Short URL</TableHead>
                     <TableHead>Original URL</TableHead>
-                    <TableHead>Clicks</TableHead>
                     <TableHead>Created</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead className="w-0 text-center">Clicks</TableHead>
+                    <TableHead className="w-0 text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
