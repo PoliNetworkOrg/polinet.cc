@@ -115,10 +115,10 @@ export function Dashboard() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex gap-4 items-center">
         <Image src={logo} alt="PoliNetwork Logo" className="h-16 w-16" />
-        <div className="mr-auto">
-          <h1 className="text-3xl font-bold">URL Shortener Dashboard</h1>
+        <div className="mr-auto gap-2">
+          <h1 className="text-3xl font-bold">polinet.cc</h1>
           <p className="text-muted-foreground">
-            Manage your shortened URLs for PoliNetwork domains
+            PoliNetwork's URL shortener dashboard
           </p>
         </div>
         <div className="flex gap-4">
