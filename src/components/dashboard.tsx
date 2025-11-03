@@ -169,7 +169,8 @@ export function Dashboard() {
             <Toggle
               pressed={queryParams.customOnly}
               onPressedChange={handleCustomOnlyToggle}
-              className="data-[state=on]:bg-secondary data-[state=on]:*:[svg]:fill-yellow-300 data-[state=on]:*:[svg]:stroke-yellow-300"
+              variant="outline"
+              className="data-[state=on]:*:[svg]:fill-yellow-300 data-[state=on]:*:[svg]:stroke-yellow-300"
             >
               <Star className="h-4 w-4" />
               Show Custom Only
