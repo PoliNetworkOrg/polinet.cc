@@ -1,4 +1,12 @@
-import { Copy, Diamond, Edit, Star, Trash2 } from "lucide-react"
+import {
+  ArrowRight,
+  Copy,
+  Diamond,
+  Edit,
+  Pointer,
+  Star,
+  Trash2,
+} from "lucide-react"
 import type { UrlRecord } from "@/lib/schemas"
 import { copyToClipboard } from "@/lib/utils"
 import { Button } from "./ui/button"
@@ -11,9 +19,74 @@ export type UrlRecordRowProps = {
   onEdit: (url: UrlRecord) => void
 }
 
+export function MobileRow({
+  url,
+  onCopy,
+  onDelete,
+  onEdit,
+}: UrlRecordRowProps) {
+  return (
+    <div className="flex flex-col gap-1 border rounded-md py-2 px-4">
+      <div className="flex justify-start gap-2 items-center">
+        {url.is_custom ? (
+          <Star className="h-4 w-4 fill-yellow-400 stroke-yellow-400" />
+        ) : (
+          <Diamond className="h-4 w-4 fill-gray-400 stroke-gray-400" />
+        )}
+
+        <a
+          href={`https://polinet.cc/${url.short_code}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-400 hover:underline font-mono"
+        >
+          polinet.cc/{url.short_code}
+        </a>
+        <Button variant="ghost" size="icon" onClick={() => onCopy(url)}>
+          <Copy />
+        </Button>
+      </div>
+      <div className="flex justify-start gap-2 items-center">
+        <ArrowRight className="text-blue-400" />
+        <a
+          href={url.original_url}
+          className="text-blue-400 hover:underline font-mono truncate"
+          title={url.original_url}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {url.original_url}
+        </a>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => copyToClipboard(url.original_url)}
+        >
+          <Copy />
+        </Button>
+      </div>
+      <div className="flex justify-end gap-2 items-center py-1">
+        <Pointer className="h-3 w-3 text-muted-foreground" />
+        <span className="text-sm">{url.click_count}</span>
+        <div className="flex-1" />
+        <span className="text-sm text-muted-foreground">
+          {url.created_at.toLocaleString()}
+        </span>
+
+        <Button variant="ghost" size="icon" onClick={() => onEdit(url)}>
+          <Edit />
+        </Button>
+        <Button variant="ghost" size="icon" onClick={() => onDelete(url)}>
+          <Trash2 className="stroke-destructive" />
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 export function UrlRecordRow({ url, ...props }: UrlRecordRowProps) {
   return (
-    <TableRow key={url.id}>
+    <TableRow key={url.id} className="max-sm:hidden">
       <TableCell>
         {url.is_custom ? (
           <Star className="h-4 w-4 fill-yellow-400 stroke-yellow-400" />
