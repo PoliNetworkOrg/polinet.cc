@@ -34,7 +34,7 @@ import { useUrls } from "@/hooks/urls"
 import type { UrlRecord, UrlsQueryParams } from "@/lib/schemas"
 import { copyToClipboard } from "@/lib/utils"
 import { CreateUrlDialog } from "./create-url-dialog"
-import { EditUrlDialog } from "./edit-url-dialog"
+import { type EditDialogState, EditUrlDialog } from "./edit-url-dialog"
 import { PaginationControls } from "./pagination"
 import { Toggle } from "./ui/toggle"
 import { UrlRecordRow } from "./url-record-row"
@@ -57,10 +57,7 @@ export function Dashboard() {
   const { urls, pagination, loading, refetch } = useUrls(queryParams)
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
-  const [editDialog, setEditDialog] = useState<{
-    open: boolean
-    url?: UrlRecord
-  }>({ open: false })
+  const [editDialog, setEditDialog] = useState<EditDialogState>({ open: false })
 
   const handleCustomOnlyToggle = () => {
     setQueryParams((prev) => ({
@@ -239,11 +236,8 @@ export function Dashboard() {
       />
 
       <EditUrlDialog
-        open={editDialog.open}
-        url={editDialog.url}
-        onOpenChange={(open: boolean) =>
-          setEditDialog({ open, url: undefined })
-        }
+        {...editDialog}
+        onClose={() => setEditDialog({ open: false })}
         onSuccess={() => {
           refetch()
           setEditDialog({ open: false })
