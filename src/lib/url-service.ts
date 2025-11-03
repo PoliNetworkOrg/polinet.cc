@@ -15,6 +15,7 @@ export class UrlService {
     customShortCode?: string
   ): Promise<UrlRecord> {
     let shortCode: string
+    let isCustom = true
 
     if (customShortCode) {
       // Check if custom short code already exists
@@ -28,15 +29,20 @@ export class UrlService {
     } else {
       // Generate a unique short code
       shortCode = nanoid(8)
+      isCustom = false
     }
 
     const query = `
-      INSERT INTO urls (original_url, short_code)
-      VALUES ($1, $2)
+      INSERT INTO urls (original_url, short_code, is_custom)
+      VALUES ($1, $2, $3)
       RETURNING *
     `
 
-    const result = await this.pool.query(query, [originalUrl, shortCode])
+    const result = await this.pool.query(query, [
+      originalUrl,
+      shortCode,
+      isCustom,
+    ])
     return result.rows[0]
   }
 

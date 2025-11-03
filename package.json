@@ -17,6 +17,8 @@
     "docker:logs": "docker-compose logs -f app"
   },
   "dependencies": {
+    "@conform-to/react": "^1.13.2",
+    "@conform-to/zod": "^1.13.2",
     "@hookform/resolvers": "^5.2.1",
     "@next/bundle-analyzer": "^16.0.1",
     "@openapi-contrib/json-schema-to-openapi-schema": "^4.2.0",
