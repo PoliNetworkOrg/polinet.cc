@@ -4,7 +4,7 @@ export const URLRecord = z.object({
   id: z.coerce.number(),
   is_custom: z.boolean(),
   original_url: z.string().url(),
-  short_code: z.string().min(3).max(20),
+  short_code: z.string().max(20),
   created_at: z.coerce.date(),
   updated_at: z.coerce.date(),
   click_count: z.number().int().nonnegative(),

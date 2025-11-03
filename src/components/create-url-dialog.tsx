@@ -1,6 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { getFormProps, getInputProps, useForm } from "@conform-to/react"
+import { getZodConstraint, parseWithZod } from "@conform-to/zod"
+import { nanoid } from "nanoid"
+import { useActionState, useCallback } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import {
@@ -13,6 +16,9 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { createUrl } from "@/lib/actions"
+import { createUrlSchema } from "@/lib/validations"
+import { RandomText } from "./random-text"
 
 interface CreateUrlDialogProps {
   open: boolean
@@ -25,49 +31,31 @@ export function CreateUrlDialog({
   onOpenChange,
   onSuccess,
 }: CreateUrlDialogProps) {
-  const [url, setUrl] = useState("")
-  const [shortCode, setShortCode] = useState("")
-  const [loading, setLoading] = useState(false)
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!url.trim()) return
-
-    setLoading(true)
-    try {
-      const requestBody: { url: string; shortCode?: string } = {
-        url: url.trim(),
-      }
-
-      if (shortCode.trim()) {
-        requestBody.shortCode = shortCode.trim()
-      }
-
-      const response = await fetch("/api/urls", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        toast.success(`Short URL created: ${data.short_code}`)
-        setUrl("")
-        setShortCode("")
-        onSuccess()
+  const [{ error, lastResult }, action, pending] = useActionState(createUrl, {
+    error: null,
+    lastResult: null,
+  })
+  const [form, fields] = useForm({
+    lastResult,
+    constraint: getZodConstraint(createUrlSchema),
+    onValidate: ({ formData }) =>
+      parseWithZod(formData, { schema: createUrlSchema }),
+    onSubmit: () => {
+      if (error) {
+        console.error("Error creating URL:", error)
+        toast.error(`Error creating URL: ${error}`)
       } else {
-        toast.error(data.error || "Failed to create short URL")
+        toast.success("Short URL created successfully!")
       }
-    } catch (error) {
-      console.error("Error creating URL:", error)
-      toast.error("Failed to create short URL")
-    } finally {
-      setLoading(false)
-    }
-  }
+      onSuccess()
+    },
+
+    shouldValidate: "onBlur",
+    shouldRevalidate: "onInput",
+  })
+
+  const randomCode = useCallback(() => nanoid(8), [])
+  const isRandom = !(fields.shortCode.value && fields.shortCode.valid)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -75,58 +63,73 @@ export function CreateUrlDialog({
         <DialogHeader>
           <DialogTitle>Create Short URL</DialogTitle>
           <DialogDescription>
-            Enter a URL to create a short URL. Optionally specify a custom short
-            code.
+            Enter a URL to create a shortened version. Optionally specify a
+            custom short code.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid col-span-4 grid-cols-4 items-center gap-4">
-              <Label htmlFor="url" className="text-right">
+        <form {...getFormProps(form, {})} action={action}>
+          <div>{form.errors}</div>
+          <div className="grid grid-cols-4 gap-x-4 py-4">
+            <span
+              id={fields.url.errorId}
+              className="text-xs col-start-2 col-span-3 text-red-600 text-center"
+            >
+              {fields.url.errors}
+            </span>
+            <div className="grid col-span-4 grid-cols-4 items-center gap-4 mb-4">
+              <Label htmlFor={fields.url.id} className="text-right">
                 URL
               </Label>
               <Input
-                id="url"
-                type="url"
+                {...getInputProps(fields.url, { type: "url" })}
                 placeholder="https://example.polinetwork.org/path"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
                 className="col-span-3"
-                required
               />
             </div>
-            <div className="grid col-span-4 grid-cols-4 items-center gap-4">
-              <Label htmlFor="shortCode" className="text-right">
+            <span
+              id={fields.shortCode.errorId}
+              className="text-xs col-start-2 col-span-3 text-red-600 text-center"
+            >
+              {fields.shortCode.errors?.join(", ")}
+            </span>
+            <div className="grid col-span-4 grid-cols-4 items-center gap-4 mb-4">
+              <Label htmlFor={fields.shortCode.id} className="text-right">
                 Short Code
               </Label>
               <Input
-                id="shortCode"
-                type="text"
+                {...getInputProps(fields.shortCode, { type: "text" })}
                 placeholder="custom-code (optional)"
-                value={shortCode}
-                onChange={(e) => setShortCode(e.target.value)}
                 className="col-span-3"
-                pattern="[a-zA-Z0-9_\-]{3,20}"
-                minLength={3}
-                maxLength={20}
-                title="Short code can only contain letters, numbers, hyphens and underscores (3-20 characters)"
+                title="Short code can only contain letters, numbers, hyphens and underscores (2-20 characters)"
               />
             </div>
             <div className="col-span-4 text-sm text-muted-foreground">
-              Leave short code empty to auto-generate a random one.
+              If you leave <i>Short Code</i> empty, a random one will be
+              auto-generated upon submission.
             </div>
+          </div>
+          <p className="text-xs">Preview: </p>
+          <div className="text-sm p-4 border rounded-md border-border mb-4 mt-1 flex flex-col gap-1 bg-muted/50 text-muted-foreground">
+            <p className="font-mono mx-auto">
+              https://polinet.cc/
+              {isRandom ? (
+                <RandomText generate={randomCode} />
+              ) : (
+                <span>{fields.shortCode.value}</span>
+              )}
+            </p>
           </div>
           <DialogFooter>
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              disabled={loading}
+              disabled={pending}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || !url.trim()}>
-              {loading ? "Creating..." : "Create"}
+            <Button type="submit" disabled={pending}>
+              {pending ? "Creating..." : "Create"}
             </Button>
           </DialogFooter>
         </form>
