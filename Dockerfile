@@ -1,19 +1,26 @@
 # Use the official Node.js 24 Alpine image for smaller size
 FROM node:24-alpine AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable pnpm
+WORKDIR /app
+
+COPY package.json ./
+
+# Fetch the correct pnpm version without installing deps
+# This reads the "packageManager" field and downloads that pnpm version
+RUN corepack prepare --activate $(node -p "require('./package.json').packageManager")
+RUN pnpm --version
 
 # Install dependencies only when needed
 FROM base AS deps
-WORKDIR /app
-RUN corepack enable pnpm
 
 # Copy package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=pnpm,target=./pnpm/store pnpm install --frozen-lockfile
 
 # Rebuild the source code only when needed
 FROM base AS builder
-WORKDIR /app
-RUN corepack enable pnpm
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -24,18 +31,17 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV SKIP_ENV_VALIDATION=1
 
-RUN pnpm build
+RUN --mount=type=cache,id=next,target=./.next/cache pnpm build
 
 # Production image, copy all the files and run next
 FROM base AS runner
-WORKDIR /app
 
 ENV NODE_ENV=production
 # Uncomment the following line in case you want to disable telemetry during runtime.
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Copy the public folder from the project as it's not included in the build output
-COPY --from=builder /app/public ./public
+COPY --from=builder /app/public* ./public
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing

@@ -16,7 +16,7 @@ polinet.cc is a specialized URL shortener for the polinetwork.org domain ecosyst
 - Uses PostgreSQL with raw SQL queries (no ORM)
 - Connection pooling via `pg.Pool` singleton in `src/lib/db.ts`
 - Database schema auto-initializes on startup
-- All database types are Zod schemas exported from `src/lib/db.ts`
+- All database types are Zod schemas exported from `src/lib/schemas.ts`
 - Service layer in `src/lib/url-service.ts` handles all database operations
 
 ### URL Generation & Redirection
@@ -65,7 +65,7 @@ urls (id SERIAL, original_url TEXT, short_code VARCHAR(10) UNIQUE,
 
 - Environment: `DATABASE_URL` for PostgreSQL connection
 - Port: Always use 6111 for development
-- Short codes: Always 8 characters, generated with nanoid
+- Short codes: Automatically generated 8 characters with nanoid, otherwise user set
 - Error responses: `{ error: string }` format
 - File organization: `/lib` for business logic, `/components` for UI, `/app` for routes
 - API base path: `/api` (configured in ts-rest handler)
