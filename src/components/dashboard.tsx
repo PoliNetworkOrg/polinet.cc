@@ -122,7 +122,7 @@ export function Dashboard() {
           </p>
         </div>
         <div className="flex gap-4">
-          <Link href="/api">
+          <Link href="/api" target="_blank" rel="noopener noreferral">
             <Button variant="outline">API Docs</Button>
           </Link>
           <Button onClick={() => setCreateDialogOpen(true)}>
