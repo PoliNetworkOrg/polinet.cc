@@ -196,3 +196,8 @@
     cursor: pointer;
   }
 }
+
+div#qr-code-preview-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+}

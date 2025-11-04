@@ -4,6 +4,7 @@ import {
   Diamond,
   Edit,
   Pointer,
+  QrCode,
   Star,
   Trash2,
 } from "lucide-react"
@@ -17,6 +18,7 @@ export type UrlRecordRowProps = {
   onCopy: (url: UrlRecord) => void
   onDelete: (url: UrlRecord) => void
   onEdit: (url: UrlRecord) => void
+  onQrCode: (url: UrlRecord) => void
 }
 
 export function MobileRow({
@@ -24,6 +26,7 @@ export function MobileRow({
   onCopy,
   onDelete,
   onEdit,
+  onQrCode,
 }: UrlRecordRowProps) {
   return (
     <div className="flex flex-col gap-1 border rounded-md py-2 px-4">
@@ -65,20 +68,24 @@ export function MobileRow({
           <Copy />
         </Button>
       </div>
-      <div className="flex justify-end gap-2 items-center py-1">
+      <div className="flex justify-end gap-2 items-center py-1 flex-wrap">
         <Pointer className="h-3 w-3 text-muted-foreground" />
         <span className="text-sm">{url.click_count}</span>
         <div className="flex-1" />
         <span className="text-sm text-muted-foreground">
           {url.created_at.toLocaleString()}
         </span>
-
-        <Button variant="ghost" size="icon" onClick={() => onEdit(url)}>
-          <Edit />
-        </Button>
-        <Button variant="ghost" size="icon" onClick={() => onDelete(url)}>
-          <Trash2 className="stroke-destructive" />
-        </Button>
+        <div className="flex justify-end items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={() => onQrCode(url)}>
+            <QrCode />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => onEdit(url)}>
+            <Edit />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => onDelete(url)}>
+            <Trash2 className="stroke-destructive" />
+          </Button>
+        </div>
       </div>
     </div>
   )
@@ -139,6 +146,13 @@ export function UrlRecordRow({ url, ...props }: UrlRecordRowProps) {
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => props.onQrCode(url)}
+          >
+            <QrCode />
+          </Button>
           <Button variant="ghost" size="icon" onClick={() => props.onEdit(url)}>
             <Edit />
           </Button>

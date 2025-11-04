@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import "./globals.css"
 import { QueryProvider } from "@/components/query-provider"
 import { Toaster } from "@/components/ui/sonner"
+import { TooltipProvider } from "@/components/ui/tooltip"
 
 export const metadata: Metadata = {
   title: "PoliNetwork Short URLs",
@@ -17,8 +18,10 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body>
         <QueryProvider>
-          {children}
-          <Toaster />
+          <TooltipProvider>
+            {children}
+            <Toaster />
+          </TooltipProvider>
         </QueryProvider>
       </body>
     </html>
