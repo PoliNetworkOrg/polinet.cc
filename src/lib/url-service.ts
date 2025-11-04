@@ -80,18 +80,18 @@ export class UrlService {
     const [dataResult, totals] = await Promise.all([
       this.pool.query(
         `
-      SELECT * FROM urls 
-      WHERE ($1 OR (original_url ILIKE $2 OR short_code ILIKE $2)) AND ($3 OR is_custom = TRUE)
-      ORDER BY ${sb} ${sortOrder === "asc" ? "ASC" : "DESC"}
-      LIMIT $4 OFFSET $5
-    `,
+          SELECT * FROM urls 
+          WHERE ($1 OR (original_url ILIKE $2 OR short_code ILIKE $2)) AND ($3 OR is_custom = TRUE)
+          ORDER BY ${sb} ${sortOrder === "asc" ? "ASC" : "DESC"}
+          LIMIT $4 OFFSET $5
+        `,
         queryParams
       ),
       this.pool.query(
         `
-      SELECT COUNT(*) FROM urls 
-      WHERE ($1 OR (original_url ILIKE $2 OR short_code ILIKE $2)) AND ($3 OR is_custom = TRUE)
-    `,
+          SELECT COUNT(*) FROM urls 
+          WHERE ($1 OR (original_url ILIKE $2 OR short_code ILIKE $2)) AND ($3 OR is_custom = TRUE)
+        `,
         queryParams.slice(0, 3)
       ),
     ])

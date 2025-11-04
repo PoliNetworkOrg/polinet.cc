@@ -37,6 +37,7 @@ import { copyToClipboard } from "@/lib/utils"
 import { CreateUrlDialog } from "./create-url-dialog"
 import { type EditDialogState, EditUrlDialog } from "./edit-url-dialog"
 import { PaginationControls } from "./pagination"
+import { QrCodeDialog } from "./qr-code-dialog"
 import { Toggle } from "./ui/toggle"
 import { MobileRow, UrlRecordRow } from "./url-record-row"
 
@@ -59,6 +60,10 @@ export function Dashboard() {
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialog, setEditDialog] = useState<EditDialogState>({ open: false })
+  const [qrDialog, setQrDialog] = useState<{
+    open: boolean
+    url?: UrlRecord
+  }>({ open: false })
 
   const handleCustomOnlyToggle = () => {
     setQueryParams((prev) => ({
@@ -111,15 +116,17 @@ export function Dashboard() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex gap-4 items-center">
-        <Image src={logo} alt="PoliNetwork Logo" className="h-16 w-16" />
-        <div className="mr-auto gap-2">
-          <h1 className="text-3xl font-bold">polinet.cc</h1>
-          <p className="text-muted-foreground">
-            PoliNetwork's URL shortener dashboard
-          </p>
+      <div className="flex justify-between gap-4 items-center max-md:flex-col">
+        <div className="flex items-center gap-4">
+          <Image src={logo} alt="PoliNetwork Logo" className="h-16 w-16" />
+          <div className="gap-2">
+            <h1 className="text-3xl font-bold">polinet.cc</h1>
+            <p className="text-muted-foreground max-md:text-sm">
+              PoliNetwork's URL shortener dashboard
+            </p>
+          </div>
         </div>
-        <div className="flex gap-4">
+        <div className="flex justify-end gap-4 max-md:gap-2 flex-wrap">
           <a
             href="https://github.com/PoliNetworkOrg/polinet.cc"
             className="underline flex items-center gap-1"
@@ -141,18 +148,7 @@ export function Dashboard() {
               <span>API Docs</span>
             </Button>
           </Link>
-          <Button
-            size="icon-lg"
-            className="md:hidden"
-            onClick={() => setCreateDialogOpen(true)}
-          >
-            <Plus />
-          </Button>
-          <Button
-            size="lg"
-            className="max-md:hidden"
-            onClick={() => setCreateDialogOpen(true)}
-          >
+          <Button size="lg" onClick={() => setCreateDialogOpen(true)}>
             <Plus />
             <span>Create Short URL</span>
           </Button>
@@ -178,9 +174,9 @@ export function Dashboard() {
                 className="pl-9"
               />
             </div>
-            <div className="flex gap-4 items-center justify-between max-md:w-full max-md:order-3">
+            <div className="flex gap-4 items-center justify-between max-md:w-full max-md:order-3 flex-wrap">
               <Select value={currentSort} onValueChange={handleSortChange}>
-                <SelectTrigger className="w-[170px] max-md:flex-1">
+                <SelectTrigger className="w-[170px] flex-100">
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
@@ -201,7 +197,7 @@ export function Dashboard() {
                 pressed={queryParams.customOnly}
                 onPressedChange={handleCustomOnlyToggle}
                 variant="outline"
-                className="data-[state=on]:*:[svg]:fill-yellow-300 data-[state=on]:*:[svg]:stroke-yellow-300"
+                className="data-[state=on]:*:[svg]:fill-yellow-300 data-[state=on]:*:[svg]:stroke-yellow-300 flex-[1_0_auto]"
               >
                 <Star className="h-4 w-4" />
                 Show Custom Only
@@ -230,6 +226,7 @@ export function Dashboard() {
                     }
                     onDelete={(url) => handleDelete(url.short_code)}
                     onEdit={(url) => setEditDialog({ open: true, url })}
+                    onQrCode={(url) => setQrDialog({ open: true, url })}
                   />
                 ))}
               </div>
@@ -256,6 +253,7 @@ export function Dashboard() {
                       }
                       onDelete={(url) => handleDelete(url.short_code)}
                       onEdit={(url) => setEditDialog({ open: true, url })}
+                      onQrCode={(url) => setQrDialog({ open: true, url })}
                     />
                   ))}
                 </TableBody>
@@ -303,6 +301,12 @@ export function Dashboard() {
           refetch()
           setEditDialog({ open: false })
         }}
+      />
+
+      <QrCodeDialog
+        open={qrDialog.open}
+        url={qrDialog.url}
+        onOpenChange={(open) => setQrDialog((prev) => ({ ...prev, open }))}
       />
     </div>
   )
