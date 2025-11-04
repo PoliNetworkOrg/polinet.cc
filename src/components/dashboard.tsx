@@ -1,6 +1,7 @@
 "use client"
 
-import { Search, Star } from "lucide-react"
+import { SiGithub as Github } from "@icons-pack/react-simple-icons"
+import { FileCodeCorner, Plus, Search, Star } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { useState } from "react"
@@ -37,7 +38,7 @@ import { CreateUrlDialog } from "./create-url-dialog"
 import { type EditDialogState, EditUrlDialog } from "./edit-url-dialog"
 import { PaginationControls } from "./pagination"
 import { Toggle } from "./ui/toggle"
-import { UrlRecordRow } from "./url-record-row"
+import { MobileRow, UrlRecordRow } from "./url-record-row"
 
 export function Dashboard() {
   const [searchInput, setSearchInput] = useState("")
@@ -119,11 +120,41 @@ export function Dashboard() {
           </p>
         </div>
         <div className="flex gap-4">
+          <a
+            href="https://github.com/PoliNetworkOrg/polinet.cc"
+            className="underline flex items-center gap-1"
+            title="https://github.com/PoliNetworkOrg/polinet.cc"
+            aria-label="tmsu.cc github repository by Tommaso Morganti"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Button size="icon-lg" variant="outline">
+              <Github />
+            </Button>
+          </a>
           <Link href="/api" target="_blank" rel="noopener noreferral">
-            <Button variant="outline">API Docs</Button>
+            <Button variant="outline" size="icon-lg" className="md:hidden">
+              <FileCodeCorner />
+            </Button>
+            <Button size="lg" variant="outline" className="max-md:hidden">
+              <FileCodeCorner />
+              <span>API Docs</span>
+            </Button>
           </Link>
-          <Button onClick={() => setCreateDialogOpen(true)}>
-            Create Short URL
+          <Button
+            size="icon-lg"
+            className="md:hidden"
+            onClick={() => setCreateDialogOpen(true)}
+          >
+            <Plus />
+          </Button>
+          <Button
+            size="lg"
+            className="max-md:hidden"
+            onClick={() => setCreateDialogOpen(true)}
+          >
+            <Plus />
+            <span>Create Short URL</span>
           </Button>
         </div>
       </div>
@@ -137,8 +168,8 @@ export function Dashboard() {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Filters */}
-          <div className="flex gap-4 items-center">
-            <div className="relative flex-1">
+          <div className="flex gap-4 items-center max-md:flex-col">
+            <div className="relative flex-1 max-md:w-full max-md:order-2">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search URLs or short codes..."
@@ -147,31 +178,35 @@ export function Dashboard() {
                 className="pl-9"
               />
             </div>
-            <Select value={currentSort} onValueChange={handleSortChange}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="created_at-desc">Newest First</SelectItem>
-                <SelectItem value="created_at-asc">Oldest First</SelectItem>
-                <SelectItem value="updated_at-desc">
-                  Recently Updated
-                </SelectItem>
-                <SelectItem value="click_count-desc">Most Clicks</SelectItem>
-                <SelectItem value="click_count-asc">Least Clicks</SelectItem>
-                <SelectItem value="short_code-asc">Short Code A-Z</SelectItem>
-                <SelectItem value="short_code-desc">Short Code Z-A</SelectItem>
-              </SelectContent>
-            </Select>
-            <Toggle
-              pressed={queryParams.customOnly}
-              onPressedChange={handleCustomOnlyToggle}
-              variant="outline"
-              className="data-[state=on]:*:[svg]:fill-yellow-300 data-[state=on]:*:[svg]:stroke-yellow-300"
-            >
-              <Star className="h-4 w-4" />
-              Show Custom Only
-            </Toggle>
+            <div className="flex gap-4 items-center justify-between max-md:w-full max-md:order-3">
+              <Select value={currentSort} onValueChange={handleSortChange}>
+                <SelectTrigger className="w-[170px] max-md:flex-1">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="created_at-desc">Newest First</SelectItem>
+                  <SelectItem value="created_at-asc">Oldest First</SelectItem>
+                  <SelectItem value="updated_at-desc">
+                    Recently Updated
+                  </SelectItem>
+                  <SelectItem value="click_count-desc">Most Clicks</SelectItem>
+                  <SelectItem value="click_count-asc">Least Clicks</SelectItem>
+                  <SelectItem value="short_code-asc">Short Code A-Z</SelectItem>
+                  <SelectItem value="short_code-desc">
+                    Short Code Z-A
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <Toggle
+                pressed={queryParams.customOnly}
+                onPressedChange={handleCustomOnlyToggle}
+                variant="outline"
+                className="data-[state=on]:*:[svg]:fill-yellow-300 data-[state=on]:*:[svg]:stroke-yellow-300"
+              >
+                <Star className="h-4 w-4" />
+                Show Custom Only
+              </Toggle>
+            </div>
           </div>
 
           {/* Table */}
@@ -185,7 +220,20 @@ export function Dashboard() {
             </div>
           ) : (
             <>
-              <Table>
+              <div className="lg:hidden flex flex-col gap-4">
+                {urls.map((url: UrlRecord) => (
+                  <MobileRow
+                    key={url.id}
+                    url={url}
+                    onCopy={(url) =>
+                      copyToClipboard(`https://polinet.cc/${url.short_code}`)
+                    }
+                    onDelete={(url) => handleDelete(url.short_code)}
+                    onEdit={(url) => setEditDialog({ open: true, url })}
+                  />
+                ))}
+              </div>
+              <Table className="max-lg:hidden">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-4">
@@ -225,6 +273,19 @@ export function Dashboard() {
           )}
         </CardContent>
       </Card>
+      <div className="flex text-center items-center justify-center gap-1">
+        <p className="text-muted-foreground text-sm">
+          Made with 💙 by{" "}
+          <a
+            href="https://polinetwork.org"
+            target="_blank"
+            rel="noreferrer noopener"
+            className="underline underline-offset-2"
+          >
+            PoliNetwork
+          </a>
+        </p>
+      </div>
 
       <CreateUrlDialog
         open={createDialogOpen}

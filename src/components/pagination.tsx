@@ -35,14 +35,14 @@ export function PaginationControls(
   console.log(props.page, props.totalPages)
 
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex flex-[1_0_auto] items-center gap-4">
+    <div className="flex items-center justify-between max-md:flex-col gap-2">
+      <div className="flex flex-[1_0_auto] items-center gap-4 max-md:order-2">
         <p className="text-sm text-muted-foreground">
           Showing {(props.page - 1) * limit + 1} to{" "}
           {Math.min(props.page * limit, props.total)} of {props.total} results
         </p>
       </div>
-      <Pagination>
+      <Pagination className="max-md:order-1">
         <PaginationContent>
           <PaginationItem>
             <PaginationPrevious
@@ -94,7 +94,7 @@ export function PaginationControls(
           </PaginationItem>
         </PaginationContent>
       </Pagination>
-      <div className="flex flex-[1_0_auto] items-center gap-2">
+      <div className="flex flex-[1_0_auto] items-center gap-2 max-md:order-3">
         <span className="text-sm text-muted-foreground">Items per page:</span>
         <Select value={limit.toString()} onValueChange={handleLimitChange}>
           <SelectTrigger className="w-[70px] h-8">
