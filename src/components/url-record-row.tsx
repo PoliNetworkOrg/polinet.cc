@@ -9,7 +9,8 @@ import {
   Trash2,
 } from "lucide-react"
 import type { UrlRecord } from "@/lib/schemas"
-import { copyToClipboard } from "@/lib/utils"
+import { makeShortUrl,
+copyToClipboard } from "@/lib/utils"
 import { Button } from "./ui/button"
 import { TableCell, TableRow } from "./ui/table"
 
@@ -28,6 +29,7 @@ export function MobileRow({
   onEdit,
   onQrCode,
 }: UrlRecordRowProps) {
+  const shortUrl = makeShortUrl(url)
   return (
     <div className="flex flex-col gap-1 border rounded-md py-2 px-4">
       <div className="flex justify-start gap-2 items-center">
@@ -38,12 +40,12 @@ export function MobileRow({
         )}
 
         <a
-          href={`https://polinet.cc/${url.short_code}`}
+          href={shortUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="text-blue-400 hover:underline font-mono"
         >
-          polinet.cc/{url.short_code}
+          {shortUrl}
         </a>
         <Button variant="ghost" size="icon" onClick={() => onCopy(url)}>
           <Copy />
@@ -92,6 +94,7 @@ export function MobileRow({
 }
 
 export function UrlRecordRow({ url, ...props }: UrlRecordRowProps) {
+  const shortUrl = makeShortUrl(url)
   return (
     <TableRow key={url.id} className="max-sm:hidden">
       <TableCell>
@@ -104,12 +107,12 @@ export function UrlRecordRow({ url, ...props }: UrlRecordRowProps) {
       <TableCell>
         <div className="flex items-center gap-2">
           <a
-            href={`https://polinet.cc/${url.short_code}`}
+            href={shortUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-400 hover:underline font-mono"
           >
-            polinet.cc/{url.short_code}
+            {shortUrl}
           </a>
           <Button variant="ghost" size="icon" onClick={() => props.onCopy(url)}>
             <Copy />

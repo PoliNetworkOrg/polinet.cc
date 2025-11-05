@@ -20,6 +20,7 @@ import {
   DialogTitle,
 } from "./ui/dialog"
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs"
+import { makeShortUrl } from "@/lib/utils";
 
 export interface QrCodeDialogProps {
   open: boolean
@@ -48,7 +49,7 @@ export function QrCodeDialog({ open, url, onOpenChange }: QrCodeDialogProps) {
   }
 
   if (!url) return null
-  const shortUrl = `https://polinet.cc/${url.short_code}`
+  const shortUrl = makeShortUrl(url)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

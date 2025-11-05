@@ -2,6 +2,7 @@
 import { generateOpenApi } from "@ts-rest/open-api"
 // import z from "zod"
 import { contract } from "@/lib/contract"
+import { env } from "@/env";
 
 // const ZOD_4_ASYNC: SchemaTransformerAsync = async ({ schema }) => {
 //   console.log("Converting schema:", schema)
@@ -16,11 +17,11 @@ import { contract } from "@/lib/contract"
 
 const openapiDocument = generateOpenApi(contract, {
   info: {
-    title: "polinet.cc API",
+    title: `${env.DOMAIN} API`,
     version: "1.0.0",
     description: "PoliNetwork's Short URLs - Service API",
   },
-  servers: [{ url: "https://polinet.cc/api" }],
+  servers: [{ url: `https://${env.DOMAIN}/api` }],
   components: {
     securitySchemes: {
       CloudflareID: {
