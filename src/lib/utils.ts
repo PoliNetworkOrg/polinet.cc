@@ -1,8 +1,8 @@
 import { type ClassValue, clsx } from "clsx"
 import { toast } from "sonner"
 import { twMerge } from "tailwind-merge"
-import { env } from "@/env";
-import type { UrlRecord } from "./schemas";
+import { env } from "@/env"
+import type { UrlRecord } from "./schemas"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

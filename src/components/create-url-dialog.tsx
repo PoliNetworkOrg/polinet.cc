@@ -16,10 +16,10 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { env } from "@/env"
 import { createUrl } from "@/lib/actions"
 import { createUrlSchema } from "@/lib/validations"
 import { RandomText } from "./random-text"
-import { env } from "@/env";
 
 interface CreateUrlDialogProps {
   open: boolean

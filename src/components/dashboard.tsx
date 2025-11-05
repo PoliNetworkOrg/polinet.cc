@@ -31,11 +31,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { env } from "@/env";
+import { env } from "@/env"
 import { useUrls } from "@/hooks/urls"
 import type { UrlRecord, UrlsQueryParams } from "@/lib/schemas"
-import { 
-copyToClipboard, makeShortUrl} from "@/lib/utils"
+import { copyToClipboard, makeShortUrl } from "@/lib/utils"
 import { CreateUrlDialog } from "./create-url-dialog"
 import { type EditDialogState, EditUrlDialog } from "./edit-url-dialog"
 import { PaginationControls } from "./pagination"
@@ -223,9 +222,7 @@ export function Dashboard() {
                   <MobileRow
                     key={url.id}
                     url={url}
-                    onCopy={(url) =>
-                      copyToClipboard(makeShortUrl(url))
-                    }
+                    onCopy={(url) => copyToClipboard(makeShortUrl(url))}
                     onDelete={(url) => handleDelete(url.short_code)}
                     onEdit={(url) => setEditDialog({ open: true, url })}
                     onQrCode={(url) => setQrDialog({ open: true, url })}
@@ -250,9 +247,7 @@ export function Dashboard() {
                     <UrlRecordRow
                       key={url.id}
                       url={url}
-                      onCopy={(url) =>
-                        copyToClipboard(makeShortUrl(url))
-                      }
+                      onCopy={(url) => copyToClipboard(makeShortUrl(url))}
                       onDelete={(url) => handleDelete(url.short_code)}
                       onEdit={(url) => setEditDialog({ open: true, url })}
                       onQrCode={(url) => setQrDialog({ open: true, url })}

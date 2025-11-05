@@ -9,6 +9,7 @@ import {
   type QrOptions,
 } from "@/lib/qr-config"
 import type { UrlRecord } from "@/lib/schemas"
+import { makeShortUrl } from "@/lib/utils"
 import { QrCode } from "./qr-code"
 import { Button } from "./ui/button"
 import {
@@ -20,7 +21,6 @@ import {
   DialogTitle,
 } from "./ui/dialog"
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs"
-import { makeShortUrl } from "@/lib/utils";
 
 export interface QrCodeDialogProps {
   open: boolean

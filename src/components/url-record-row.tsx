@@ -9,8 +9,7 @@ import {
   Trash2,
 } from "lucide-react"
 import type { UrlRecord } from "@/lib/schemas"
-import { makeShortUrl,
-copyToClipboard } from "@/lib/utils"
+import { copyToClipboard, makeShortUrl } from "@/lib/utils"
 import { Button } from "./ui/button"
 import { TableCell, TableRow } from "./ui/table"
 

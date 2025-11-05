@@ -1,8 +1,8 @@
 // import convert from "@openapi-contrib/json-schema-to-openapi-schema"
 import { generateOpenApi } from "@ts-rest/open-api"
+import { env } from "@/env"
 // import z from "zod"
 import { contract } from "@/lib/contract"
-import { env } from "@/env";
 
 // const ZOD_4_ASYNC: SchemaTransformerAsync = async ({ schema }) => {
 //   console.log("Converting schema:", schema)
