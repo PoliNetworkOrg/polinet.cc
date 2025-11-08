@@ -1,6 +1,8 @@
 import { type ClassValue, clsx } from "clsx"
 import { toast } from "sonner"
 import { twMerge } from "tailwind-merge"
+import { env } from "@/env"
+import type { UrlRecord } from "./schemas"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -32,4 +34,8 @@ export const copyToClipboard = async (text: string) => {
     console.error("Error copying to clipboard:", error)
     toast.error("Failed to copy to clipboard")
   }
+}
+
+export function makeShortUrl(url: UrlRecord): string {
+  return `https://${env.DOMAIN}/${url.short_code}`
 }

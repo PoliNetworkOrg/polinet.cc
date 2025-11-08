@@ -9,6 +9,7 @@ import {
   type QrOptions,
 } from "@/lib/qr-config"
 import type { UrlRecord } from "@/lib/schemas"
+import { makeShortUrl } from "@/lib/utils"
 import { QrCode } from "./qr-code"
 import { Button } from "./ui/button"
 import {
@@ -48,7 +49,7 @@ export function QrCodeDialog({ open, url, onOpenChange }: QrCodeDialogProps) {
   }
 
   if (!url) return null
-  const shortUrl = `https://polinet.cc/${url.short_code}`
+  const shortUrl = makeShortUrl(url)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

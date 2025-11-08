@@ -31,9 +31,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { env } from "@/env"
 import { useUrls } from "@/hooks/urls"
 import type { UrlRecord, UrlsQueryParams } from "@/lib/schemas"
-import { copyToClipboard } from "@/lib/utils"
+import { copyToClipboard, makeShortUrl } from "@/lib/utils"
 import { CreateUrlDialog } from "./create-url-dialog"
 import { type EditDialogState, EditUrlDialog } from "./edit-url-dialog"
 import { PaginationControls } from "./pagination"
@@ -120,7 +121,7 @@ export function Dashboard() {
         <div className="flex items-center gap-4">
           <Image src={logo} alt="PoliNetwork Logo" className="h-16 w-16" />
           <div className="gap-2">
-            <h1 className="text-3xl font-bold">polinet.cc</h1>
+            <h1 className="text-3xl font-bold">${env.DOMAIN}</h1>
             <p className="text-muted-foreground max-md:text-sm">
               PoliNetwork's URL shortener dashboard
             </p>
@@ -221,9 +222,7 @@ export function Dashboard() {
                   <MobileRow
                     key={url.id}
                     url={url}
-                    onCopy={(url) =>
-                      copyToClipboard(`https://polinet.cc/${url.short_code}`)
-                    }
+                    onCopy={(url) => copyToClipboard(makeShortUrl(url))}
                     onDelete={(url) => handleDelete(url.short_code)}
                     onEdit={(url) => setEditDialog({ open: true, url })}
                     onQrCode={(url) => setQrDialog({ open: true, url })}
@@ -248,9 +247,7 @@ export function Dashboard() {
                     <UrlRecordRow
                       key={url.id}
                       url={url}
-                      onCopy={(url) =>
-                        copyToClipboard(`https://polinet.cc/${url.short_code}`)
-                      }
+                      onCopy={(url) => copyToClipboard(makeShortUrl(url))}
                       onDelete={(url) => handleDelete(url.short_code)}
                       onEdit={(url) => setEditDialog({ open: true, url })}
                       onQrCode={(url) => setQrDialog({ open: true, url })}

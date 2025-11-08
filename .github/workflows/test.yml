@@ -37,8 +37,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run linter
-        run: pnpm run lint
+      - name: Run Biome
+        run: pnpm exec biome ci .
 
       - name: Check TypeScript types
         run: pnpm run build

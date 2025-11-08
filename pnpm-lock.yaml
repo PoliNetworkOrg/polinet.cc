@@ -49,7 +49,7 @@ importers:
         version: 1.2.8(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@scalar/nextjs-api-reference':
         specifier: ^0.8.23
-        version: 0.8.23(next@15.5.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0)
+        version: 0.8.23(next@15.5.2(babel-plugin-react-compiler@1.0.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0)
       '@t3-oss/env-nextjs':
         specifier: ^0.13.8
         version: 0.13.8(typescript@5.9.2)(zod@3.24.1)
@@ -61,13 +61,13 @@ importers:
         version: 3.52.1(@types/node@24.3.1)(zod@3.24.1)
       '@ts-rest/next':
         specifier: 3.52.1
-        version: 3.52.1(@ts-rest/core@3.52.1(@types/node@24.3.1)(zod@3.24.1))(next@15.5.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(zod@3.24.1)
+        version: 3.52.1(@ts-rest/core@3.52.1(@types/node@24.3.1)(zod@3.24.1))(next@15.5.2(babel-plugin-react-compiler@1.0.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(zod@3.24.1)
       '@ts-rest/open-api':
         specifier: 3.52.1
         version: 3.52.1(@ts-rest/core@3.52.1(@types/node@24.3.1)(zod@3.24.1))(zod@3.24.1)
       '@ts-rest/serverless':
         specifier: ^3.52.1
-        version: 3.52.1(@ts-rest/core@3.52.1(@types/node@24.3.1)(zod@3.24.1))(next@15.5.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(zod@3.24.1)
+        version: 3.52.1(@ts-rest/core@3.52.1(@types/node@24.3.1)(zod@3.24.1))(next@15.5.2(babel-plugin-react-compiler@1.0.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(zod@3.24.1)
       '@types/pg':
         specifier: ^8.15.5
         version: 8.15.5
@@ -88,7 +88,7 @@ importers:
         version: 5.1.5
       next:
         specifier: 15.5.2
-        version: 15.5.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+        version: 15.5.2(babel-plugin-react-compiler@1.0.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -135,6 +135,9 @@ importers:
       '@types/react-dom':
         specifier: ^19
         version: 19.1.9(@types/react@19.1.12)
+      babel-plugin-react-compiler:
+        specifier: ^1.0.0
+        version: 1.0.0
       tailwindcss:
         specifier: ^4
         version: 4.1.13
@@ -162,6 +165,18 @@ packages:
     engines: {node: '>= 20'}
     peerDependencies:
       '@types/json-schema': ^7.0.15
+
+  '@babel/helper-string-parser@7.27.1':
+    resolution: {integrity: sha512-qMlSxKbpRlAridDExk92nSobyDdpPijUq2DW6oDnUqd0iOGxmQjyqhMIihI9+zv4LPyZdRje2cavWPbCbWm3eA==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/helper-validator-identifier@7.28.5':
+    resolution: {integrity: sha512-qSs4ifwzKJSV39ucNjsvc6WVHs6b7S03sOh2OcHF9UHfVPqWWALUsNUVzhSBiItjRZoLHx7nIarVjqKVusUZ1Q==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/types@7.28.5':
+    resolution: {integrity: sha512-qQ5m48eI/MFLQ5PxQj4PFaprjyCTLI37ElWMmNs0K8Lk3dVeOdNpB3ks8jc7yM5CDmVC73eMVk/trk3fgmrUpA==}
+    engines: {node: '>=6.9.0'}
 
   '@biomejs/biome@2.2.0':
     resolution: {integrity: sha512-3On3RSYLsX+n9KnoSgfoYlckYBoU6VRM22cw1gB4Y0OuUVSYd/O/2saOJMrA4HFfA1Ff0eacOvMN1yAAvHtzIw==}
@@ -1057,6 +1072,9 @@ packages:
     resolution: {integrity: sha512-ik3ZgC9dY/lYVVM++OISsaYDeg1tb0VtP5uL3ouh1koGOaUMDPpbFIei4JkFimWUFPn90sbMNMXQAIVOlnYKJA==}
     engines: {node: '>=10'}
 
+  babel-plugin-react-compiler@1.0.0:
+    resolution: {integrity: sha512-Ixm8tFfoKKIPYdCCKYTsqv+Fd4IJ0DQqMyEimo+pxUOMUR9cVPlwTrFt9Avu+3cb6Zp3mAzl+t1MrG2fxxKsxw==}
+
   caniuse-lite@1.0.30001741:
     resolution: {integrity: sha512-QGUGitqsc8ARjLdgAfxETDhRbJ0REsP6O3I96TAth/mVjh2cYzN2u+3AzPP3aVSm2FehEItaJw1xd+IGBXWeSw==}
 
@@ -1626,6 +1644,15 @@ snapshots:
       '@types/json-schema': 7.0.15
       js-yaml: 4.1.0
 
+  '@babel/helper-string-parser@7.27.1': {}
+
+  '@babel/helper-validator-identifier@7.28.5': {}
+
+  '@babel/types@7.28.5':
+    dependencies:
+      '@babel/helper-string-parser': 7.27.1
+      '@babel/helper-validator-identifier': 7.28.5
+
   '@biomejs/biome@2.2.0':
     optionalDependencies:
       '@biomejs/cli-darwin-arm64': 2.2.0
@@ -2186,10 +2213,10 @@ snapshots:
     dependencies:
       '@scalar/types': 0.3.2
 
-  '@scalar/nextjs-api-reference@0.8.23(next@15.5.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0)':
+  '@scalar/nextjs-api-reference@0.8.23(next@15.5.2(babel-plugin-react-compiler@1.0.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0)':
     dependencies:
       '@scalar/core': 0.3.20
-      next: 15.5.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      next: 15.5.2(babel-plugin-react-compiler@1.0.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       react: 19.1.0
 
   '@scalar/openapi-types@0.5.0':
@@ -2305,10 +2332,10 @@ snapshots:
       '@types/node': 24.3.1
       zod: 3.24.1
 
-  '@ts-rest/next@3.52.1(@ts-rest/core@3.52.1(@types/node@24.3.1)(zod@3.24.1))(next@15.5.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(zod@3.24.1)':
+  '@ts-rest/next@3.52.1(@ts-rest/core@3.52.1(@types/node@24.3.1)(zod@3.24.1))(next@15.5.2(babel-plugin-react-compiler@1.0.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(zod@3.24.1)':
     dependencies:
       '@ts-rest/core': 3.52.1(@types/node@24.3.1)(zod@3.24.1)
-      next: 15.5.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      next: 15.5.2(babel-plugin-react-compiler@1.0.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
     optionalDependencies:
       zod: 3.24.1
 
@@ -2319,12 +2346,12 @@ snapshots:
       openapi3-ts: 2.0.2
       zod: 3.24.1
 
-  '@ts-rest/serverless@3.52.1(@ts-rest/core@3.52.1(@types/node@24.3.1)(zod@3.24.1))(next@15.5.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(zod@3.24.1)':
+  '@ts-rest/serverless@3.52.1(@ts-rest/core@3.52.1(@types/node@24.3.1)(zod@3.24.1))(next@15.5.2(babel-plugin-react-compiler@1.0.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(zod@3.24.1)':
     dependencies:
       '@ts-rest/core': 3.52.1(@types/node@24.3.1)(zod@3.24.1)
       itty-router: 5.0.22
     optionalDependencies:
-      next: 15.5.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      next: 15.5.2(babel-plugin-react-compiler@1.0.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       zod: 3.24.1
 
   '@types/json-schema@7.0.15': {}
@@ -2373,6 +2400,10 @@ snapshots:
   aria-hidden@1.2.6:
     dependencies:
       tslib: 2.8.1
+
+  babel-plugin-react-compiler@1.0.0:
+    dependencies:
+      '@babel/types': 7.28.5
 
   caniuse-lite@1.0.30001741: {}
 
@@ -2546,7 +2577,7 @@ snapshots:
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
-  next@15.5.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
+  next@15.5.2(babel-plugin-react-compiler@1.0.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
     dependencies:
       '@next/env': 15.5.2
       '@swc/helpers': 0.5.15
@@ -2564,6 +2595,7 @@ snapshots:
       '@next/swc-linux-x64-musl': 15.5.2
       '@next/swc-win32-arm64-msvc': 15.5.2
       '@next/swc-win32-x64-msvc': 15.5.2
+      babel-plugin-react-compiler: 1.0.0
       sharp: 0.34.3
     transitivePeerDependencies:
       - '@babel/core'

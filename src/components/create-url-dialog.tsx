@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { env } from "@/env"
 import { createUrl } from "@/lib/actions"
 import { createUrlSchema } from "@/lib/validations"
 import { RandomText } from "./random-text"
@@ -111,7 +112,7 @@ export function CreateUrlDialog({
           <p className="text-xs">Preview: </p>
           <div className="text-sm p-4 border rounded-md border-border mb-4 mt-1 flex flex-col gap-1 bg-muted/50 text-muted-foreground">
             <p className="font-mono mx-auto">
-              https://polinet.cc/
+              https://${env.DOMAIN}/
               {isRandom ? (
                 <RandomText generate={randomCode} />
               ) : (

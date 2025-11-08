@@ -7,8 +7,8 @@
     "build": "next build --turbopack",
     "build:analyze": "ANALYZE=true SKIP_ENV_VALIDATION=true next build",
     "start": "next start",
-    "lint": "biome check",
-    "format": "biome format --write",
+    "check": "biome check",
+    "check:fix": "biome check --write",
     "docker:build": "docker build -t tmsu-cc .",
     "docker:run": "docker run -p 6111:6111 tmsu-cc",
     "docker:dev": "docker-compose up --build",
@@ -61,6 +61,7 @@
     "@types/node": "^24.3.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "babel-plugin-react-compiler": "^1.0.0",
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.8",
     "typescript": "^5"

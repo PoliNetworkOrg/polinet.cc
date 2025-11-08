@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { editUrl } from "@/lib/actions"
 import type { UrlRecord } from "@/lib/schemas"
+import { makeShortUrl } from "@/lib/utils"
 import { editUrlSchema } from "@/lib/validations"
 
 export type EditDialogState =
@@ -67,7 +68,7 @@ export function EditUrlDialog({
           <DialogHeader>
             <DialogTitle>Edit Short URL</DialogTitle>
             <DialogDescription>
-              Update the destination URL for polinet.cc/{state.url.short_code}.
+              Update the destination URL for {makeShortUrl(state.url)}.
             </DialogDescription>
           </DialogHeader>
           <form {...getFormProps(form, {})} action={action}>
