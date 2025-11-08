@@ -25,15 +25,14 @@ export const PaginatedUrlsResponse = z.object({
 })
 
 export const GetUrlsQueryParams = z.object({
-  page: z.coerce.number().int().positive().optional().default(1),
-  limit: z.coerce.number().int().positive().max(100).optional().default(10),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(10),
   search: z.string().optional(),
   sortBy: z
     .enum(["created_at", "updated_at", "click_count", "short_code"])
-    .optional()
     .default("created_at"),
-  sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
-  customOnly: z.coerce.boolean().optional().default(false),
+  sortOrder: z.enum(["asc", "desc"]).default("desc"),
+  customOnly: z.coerce.boolean().default(false),
 })
 
 export type PaginatedUrlsResponse = z.infer<typeof PaginatedUrlsResponse>

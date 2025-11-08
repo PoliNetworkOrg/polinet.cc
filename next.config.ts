@@ -8,6 +8,14 @@ const nextConfig: NextConfig = {
   output: "standalone",
   transpilePackages: ["@t3-oss/env-nextjs", "@t3-oss/env-core"],
   experimental: { reactCompiler: true, swcTraceProfiling: ANALYZE_AND_PROFILE },
+  turbopack: {
+    rules: {
+      "*.svg": {
+        loaders: ["@svgr/webpack"],
+        as: "*.js",
+      },
+    },
+  },
 }
 
 export default withBundleAnalyzer(nextConfig)

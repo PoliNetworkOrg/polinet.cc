@@ -7,7 +7,7 @@ import {
   QR_OPTIONS,
   type QrOptionKey,
   type QrOptions,
-} from "@/lib/qr-config"
+} from "@/lib/qr/config"
 import type { UrlRecord } from "@/lib/schemas"
 import { makeShortUrl } from "@/lib/utils"
 import { QrCode } from "./qr-code"

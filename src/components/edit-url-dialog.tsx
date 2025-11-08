@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { editUrl } from "@/lib/actions"
+import { editUrl } from "@/lib/actions/forms"
 import type { UrlRecord } from "@/lib/schemas"
 import { makeShortUrl } from "@/lib/utils"
 import { editUrlSchema } from "@/lib/validations"

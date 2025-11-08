@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/table"
 import { env } from "@/env"
 import { useUrls } from "@/hooks/urls"
+import { deleteShortUrl } from "@/lib/actions/urls"
 import type { UrlRecord, UrlsQueryParams } from "@/lib/schemas"
 import { copyToClipboard, makeShortUrl } from "@/lib/utils"
 import { CreateUrlDialog } from "./create-url-dialog"
@@ -97,15 +98,12 @@ export function Dashboard() {
     if (!confirm("Are you sure you want to delete this URL?")) return
 
     try {
-      const response = await fetch(`/api/urls/${shortCode}`, {
-        method: "DELETE",
-      })
-
-      if (response.ok) {
+      const success = await deleteShortUrl(shortCode)
+      if (success) {
         toast.success("URL deleted successfully")
         refetch()
       } else {
-        toast.error("Failed to delete URL")
+        toast.error("URL does not exist")
       }
     } catch (error) {
       console.error("Error deleting URL:", error)

@@ -2,8 +2,8 @@
 
 import type { SubmissionResult } from "@conform-to/react"
 import { parseWithZod } from "@conform-to/zod"
-import { urlService } from "./url-service"
-import { createUrlSchema, editUrlSchema } from "./validations"
+import { urlService } from "../url-service"
+import { createUrlSchema, editUrlSchema } from "../validations"
 
 export async function createUrl(
   prevState: {

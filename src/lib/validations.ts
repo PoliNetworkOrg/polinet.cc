@@ -15,10 +15,6 @@ export const createUrlSchema = z.object({
 
 export type CreateUrlInput = z.infer<typeof createUrlSchema>
 
-export const editUrlSchema = createUrlSchema.extend({
-  shortCode: z
-    .string()
-    .min(2)
-    .max(20)
-    .regex(/^[a-zA-Z0-9_-]+$/),
+export const editUrlSchema = createUrlSchema.required({
+  shortCode: true,
 })

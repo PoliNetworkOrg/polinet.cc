@@ -1,19 +1,14 @@
 import { createNextHandler } from "@ts-rest/serverless/next"
 import { contract } from "@/lib/contract"
+import { generateQR } from "@/lib/qr/server"
 import { urlService } from "@/lib/url-service"
+import { makeShortUrl } from "@/lib/utils"
 
 const handler = createNextHandler(
   contract,
   {
     getAllUrls: async ({ query }) => {
-      const result = await urlService.getAllUrls({
-        page: query.page,
-        limit: query.limit,
-        search: query.search,
-        sortBy: query.sortBy,
-        sortOrder: query.sortOrder,
-        customOnly: query.customOnly,
-      })
+      const result = await urlService.getAllUrls(query)
       return {
         status: 200,
         body: result,
@@ -51,6 +46,14 @@ const handler = createNextHandler(
         status: 200,
         body: urlRecord,
       }
+    },
+    getQR: async ({ params, query }) => {
+      const record = await urlService.getUrlByShortCode(params.shortCode)
+      if (!record) return { status: 404, body: { error: "URL not found" } }
+
+      const url = makeShortUrl(record)
+      const body = await generateQR(url, 1024, params.ext, query)
+      return { status: 200, body }
     },
     updateUrl: async ({ params, body }) => {
       const urlRecord = await urlService.updateUrl(params.shortCode, body.url)

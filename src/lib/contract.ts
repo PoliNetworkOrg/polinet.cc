@@ -1,5 +1,6 @@
 import { initContract } from "@ts-rest/core"
 import z from "zod"
+import type { QrOptions } from "./qr/config"
 import { GetUrlsQueryParams, PaginatedUrlsResponse, URLRecord } from "./schemas"
 import { createUrlSchema } from "./validations"
 
@@ -27,6 +28,21 @@ export const contract = c.router({
       404: APIError,
     },
     summary: "Get URL by short code",
+  },
+  getQR: {
+    method: "GET",
+    path: "/urls/:shortCode/qr.:ext",
+    pathParams: z.object({
+      shortCode: z.string(),
+      ext: z.enum(["png", "svg", "jpeg", "webp"]),
+    }),
+    query: c.type<Partial<QrOptions>>(),
+    responses: {
+      200: c.otherResponse({
+        contentType: "image/*",
+        body: z.instanceof(Blob),
+      }),
+    },
   },
   createUrl: {
     method: "POST",

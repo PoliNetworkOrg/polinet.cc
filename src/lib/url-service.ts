@@ -1,10 +1,11 @@
 import { nanoid } from "nanoid"
 import { getPool } from "./db"
 import {
-  type GetUrlsQueryParams,
+  GetUrlsQueryParams,
   type PaginatedUrlsResponse,
   URLRecords,
   type UrlRecord,
+  type UrlsQueryParams,
 } from "./schemas"
 
 export class UrlService {
@@ -53,51 +54,39 @@ export class UrlService {
     return result.rows[0] || null
   }
 
-  async getAllUrls(
-    options: Partial<GetUrlsQueryParams>
-  ): Promise<PaginatedUrlsResponse> {
-    const {
-      page = 1,
-      limit = 10,
-      search,
-      sortBy = "created_at",
-      customOnly = false,
-      sortOrder = "desc",
-    } = options
-
-    const sb = [
-      "created_at",
-      "updated_at",
-      "click_count",
-      "short_code",
-    ].includes(sortBy)
-      ? sortBy
-      : "created_at"
+  async getAllUrls(options: UrlsQueryParams): Promise<PaginatedUrlsResponse> {
+    const { page, limit, search, sortBy, customOnly, sortOrder } =
+      GetUrlsQueryParams.parse(options)
 
     const offset = (page - 1) * limit
-    const queryParams = [!search, `%${search}%`, !customOnly, limit, offset]
+    // [{if no search}, {the search query}, {if not customOnly}]
+    const whereParams = [!search, `%${search}%`, !customOnly]
 
-    const [dataResult, totals] = await Promise.all([
-      this.pool.query(
-        `
+    const [urls, total] = await Promise.all([
+      // results query
+      this.pool
+        .query(
+          // injecting sortBy and sortOrder is safe, since they're behind a zod enum validation
+          `
           SELECT * FROM urls 
           WHERE ($1 OR (original_url ILIKE $2 OR short_code ILIKE $2)) AND ($3 OR is_custom = TRUE)
-          ORDER BY ${sb} ${sortOrder === "asc" ? "ASC" : "DESC"}
+          ORDER BY ${sortBy} ${sortOrder === "asc" ? "ASC" : "DESC"}
           LIMIT $4 OFFSET $5
         `,
-        queryParams
-      ),
-      this.pool.query(
-        `
+          [...whereParams, limit, offset]
+        )
+        .then((res) => URLRecords.parse(res.rows)),
+      // count query with no pagination
+      this.pool
+        .query(
+          `
           SELECT COUNT(*) FROM urls 
           WHERE ($1 OR (original_url ILIKE $2 OR short_code ILIKE $2)) AND ($3 OR is_custom = TRUE)
         `,
-        queryParams.slice(0, 3)
-      ),
+          whereParams
+        )
+        .then((res) => parseInt(res.rows[0]?.count ?? "0", 10)),
     ])
-
-    const total = parseInt(totals.rows[0].count, 10)
-    const urls = URLRecords.parse(dataResult.rows)
 
     return {
       urls,

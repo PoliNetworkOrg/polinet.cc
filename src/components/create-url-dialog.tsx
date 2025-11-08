@@ -17,7 +17,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { env } from "@/env"
-import { createUrl } from "@/lib/actions"
+import { createUrl } from "@/lib/actions/forms"
 import { createUrlSchema } from "@/lib/validations"
 import { RandomText } from "./random-text"
 
