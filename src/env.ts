@@ -3,20 +3,24 @@ import { z } from "zod"
 
 const PORT = 6111
 
+const domainSchema = z
+  .string()
+  .default(`polinet.cc`)
+  .describe(
+    "This is the domain to use as shortener. API available at /api and Admin dashboard at /admin"
+  )
+
 // coerce is needed for non-string values, because k8s supports only string env
 export const env = createEnv({
+  client: {
+    NEXT_PUBLIC_DOMAIN: domainSchema,
+  },
   server: {
     PORT: z.coerce.number().min(1).max(65535).default(PORT),
     NODE_ENV: z.enum(["development", "production"]).default("development"),
     // PUBLIC_URL: z.string().default(`https://polinet.cc`),
     // LOG_LEVEL: z.string().default("DEBUG"),
-    DOMAIN: z
-      .string()
-      .default(`polinet.cc`)
-      .describe(
-        "This is the domain to use as shortener. API available at /api and Admin dashboard at /admin"
-      ),
-
+    DOMAIN: domainSchema,
     DB_HOST: z.string().min(1),
     DB_PORT: z.coerce.number().min(1).max(65535).default(5432),
     DB_USER: z.string().min(1),
@@ -28,6 +32,7 @@ export const env = createEnv({
   runtimeEnv: {
     PORT: process.env.PORT,
     DOMAIN: process.env.DOMAIN,
+    NEXT_PUBLIC_DOMAIN: process.env.DOMAIN,
     DB_HOST: process.env.DB_HOST,
     DB_PORT: process.env.DB_PORT,
     DB_USER: process.env.DB_USER,

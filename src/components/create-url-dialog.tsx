@@ -112,7 +112,7 @@ export function CreateUrlDialog({
           <p className="text-xs">Preview: </p>
           <div className="text-sm p-4 border rounded-md border-border mb-4 mt-1 flex flex-col gap-1 bg-muted/50 text-muted-foreground">
             <p className="font-mono mx-auto">
-              https://${env.DOMAIN}/
+              https://${env.NEXT_PUBLIC_DOMAIN}/
               {isRandom ? (
                 <RandomText generate={randomCode} />
               ) : (

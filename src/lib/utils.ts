@@ -37,5 +37,5 @@ export const copyToClipboard = async (text: string) => {
 }
 
 export function makeShortUrl(url: UrlRecord): string {
-  return `https://${env.DOMAIN}/${url.short_code}`
+  return `https://${env.NEXT_PUBLIC_DOMAIN}/${url.short_code}`
 }
