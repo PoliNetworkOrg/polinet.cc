@@ -5,6 +5,11 @@ const PORT = 6111
 
 // coerce is needed for non-string values, because k8s supports only string env
 export const env = createEnv({
+  client: {
+    NEXT_PUBLIC_DOMAIN: z
+      .string()
+      .describe("Exposed to client side, same as env.DOMAIN"),
+  },
   server: {
     PORT: z.coerce.number().min(1).max(65535).default(PORT),
     NODE_ENV: z.enum(["development", "production"]).default("development"),
@@ -28,6 +33,7 @@ export const env = createEnv({
   runtimeEnv: {
     PORT: process.env.PORT,
     DOMAIN: process.env.DOMAIN,
+    NEXT_PUBLIC_DOMAIN: process.env.DOMAIN,
     DB_HOST: process.env.DB_HOST,
     DB_PORT: process.env.DB_PORT,
     DB_USER: process.env.DB_USER,

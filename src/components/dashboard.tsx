@@ -121,7 +121,7 @@ export function Dashboard() {
         <div className="flex items-center gap-4">
           <Image src={logo} alt="PoliNetwork Logo" className="h-16 w-16" />
           <div className="gap-2">
-            <h1 className="text-3xl font-bold">${env.DOMAIN}</h1>
+            <h1 className="text-3xl font-bold">{env.NEXT_PUBLIC_DOMAIN}</h1>
             <p className="text-muted-foreground max-md:text-sm">
               PoliNetwork's URL shortener dashboard
             </p>
