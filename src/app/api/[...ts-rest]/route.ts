@@ -9,10 +9,7 @@ const handler = createNextHandler(
   {
     getAllUrls: async ({ query }) => {
       const result = await urlService.getAllUrls(query)
-      return {
-        status: 200,
-        body: result,
-      }
+      return { status: 200, body: result }
     },
     createUrl: async ({ body }) => {
       try {
@@ -20,13 +17,10 @@ const handler = createNextHandler(
           body.url,
           body.shortCode
         )
-        return {
-          status: 201,
-          body: urlRecord,
-        }
+        return { status: 201, body: urlRecord }
       } catch (error) {
         return {
-          status: 400,
+          status: 500,
           body: {
             error:
               error instanceof Error ? error.message : "Failed to create URL",
@@ -36,16 +30,8 @@ const handler = createNextHandler(
     },
     getUrl: async ({ params }) => {
       const urlRecord = await urlService.getUrlByShortCode(params.shortCode)
-      if (!urlRecord) {
-        return {
-          status: 404,
-          body: { error: "URL not found" },
-        }
-      }
-      return {
-        status: 200,
-        body: urlRecord,
-      }
+      if (!urlRecord) return { status: 404, body: { error: "URL not found" } }
+      return { status: 200, body: urlRecord }
     },
     getQR: async ({ params, query }) => {
       const record = await urlService.getUrlByShortCode(params.shortCode)
@@ -57,29 +43,13 @@ const handler = createNextHandler(
     },
     updateUrl: async ({ params, body }) => {
       const urlRecord = await urlService.updateUrl(params.shortCode, body.url)
-      if (!urlRecord) {
-        return {
-          status: 404,
-          body: { error: "URL not found" },
-        }
-      }
-      return {
-        status: 200,
-        body: urlRecord,
-      }
+      if (!urlRecord) return { status: 404, body: { error: "URL not found" } }
+      return { status: 200, body: urlRecord }
     },
     deleteUrl: async ({ params }) => {
       const deleted = await urlService.deleteUrl(params.shortCode)
-      if (!deleted) {
-        return {
-          status: 404,
-          body: { error: "URL not found" },
-        }
-      }
-      return {
-        status: 204,
-        body: undefined,
-      }
+      if (!deleted) return { status: 404, body: { error: "URL not found" } }
+      return { status: 204 }
     },
   },
   {

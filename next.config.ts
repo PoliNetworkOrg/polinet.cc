@@ -9,12 +9,29 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@t3-oss/env-nextjs", "@t3-oss/env-core"],
   experimental: { reactCompiler: true, swcTraceProfiling: ANALYZE_AND_PROFILE },
   turbopack: {
-    rules: {
-      "*.svg": {
-        loaders: ["@svgr/webpack"],
-        as: "*.js",
-      },
-    },
+    // rules: {
+    //   "*.svg": {
+    //     loaders: [
+    //       {
+    //         loader: "@svgr/webpack",
+    //         options: {
+    //           svgoConfig: {
+    //             plugins: [
+    //               {
+    //                 name: "preset-default",
+    //                 params: {
+    //                   overrides: { removeViewBox: false },
+    //                 },
+    //               },
+    //               "removeDimensions",
+    //             ],
+    //           },
+    //         },
+    //       },
+    //     ],
+    //     as: "*.js",
+    //   },
+    // },
   },
 }
 

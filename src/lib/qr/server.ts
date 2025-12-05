@@ -1,4 +1,4 @@
-"use server"
+"use client"
 
 import nodeCanvas from "canvas"
 import { JSDOM } from "jsdom"
@@ -6,7 +6,6 @@ import QRCodeStyling, {
   type FileExtension,
   type Options,
 } from "qr-code-styling"
-import logo from "@/assets/logo.svg"
 import { makeOptions, type QrOptions } from "./config"
 
 export async function generateQR(
@@ -29,14 +28,12 @@ export async function generateQR(
 }
 
 function toServerOptions(options: Options): Options {
-  const image = options.image ? logo : undefined
-  console.log("Using logo:", image)
   console.log("Options:", options)
   return {
     ...options,
-    nodeCanvas,
-    jsdom: JSDOM,
-    image,
+    // nodeCanvas,
+    // jsdom: JSDOM,
+    // image: options.image ? logo : undefined,
     imageOptions: {
       ...options.imageOptions,
       saveAsBlob: true,

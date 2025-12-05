@@ -68,9 +68,8 @@ export function makeOptions(
     image: styled ? logo.src : undefined,
     imageOptions: { margin: size / 64 },
     qrOptions: {
-      typeNumber: 0,
       mode: "Byte",
-      errorCorrectionLevel: styled ? "Q" : "L",
+      errorCorrectionLevel: styled ? "H" : "L",
     },
     dotsOptions: {
       color,

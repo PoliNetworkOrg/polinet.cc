@@ -20,6 +20,10 @@ const openapiDocument = generateOpenApi(contract, {
     title: `${env.DOMAIN} API`,
     version: "1.0.0",
     description: "PoliNetwork's Short URLs - Service API",
+    license: {
+      name: "MIT",
+      url: "https://github.com/polinetworkorg/polinet.cc/LICENSE",
+    },
   },
   servers: [{ url: `https://${env.DOMAIN}/api` }],
   components: {
