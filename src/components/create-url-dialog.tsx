@@ -27,6 +27,16 @@ interface CreateUrlDialogProps {
   onSuccess: () => void
 }
 
+/**
+ * Renders a modal dialog that lets the user create a shortened URL with an optional custom short code.
+ *
+ * The dialog contains fields for the target URL and an optional short code, a live preview using the app domain, and actions to cancel or submit the form.
+ *
+ * @param open - Whether the dialog is visible.
+ * @param onOpenChange - Callback invoked with the new open state when the dialog visibility changes.
+ * @param onSuccess - Callback invoked after a submit attempt completes (called regardless of success or error).
+ * @returns The dialog component markup for creating a short URL.
+ */
 export function CreateUrlDialog({
   open,
   onOpenChange,
