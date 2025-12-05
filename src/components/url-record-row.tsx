@@ -42,17 +42,10 @@ export function MobileRow({
           href={shortUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-blue-400 flex-1 max-sm:hidden hover:underline font-mono"
+          className="text-blue-400 flex-1 hover:underline font-mono"
         >
-          {shortUrl}
-        </a>
-        <a
-          href={shortUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-400 flex-1 sm:hidden hover:underline font-mono"
-        >
-          /{url.short_code}
+          <span className="max-sm:hidden">{shortUrl}</span>
+          <span className="sm:hidden">/{url.short_code}</span>
         </a>
         <Button variant="ghost" size="icon" onClick={() => onCopy(url)}>
           <Copy />
