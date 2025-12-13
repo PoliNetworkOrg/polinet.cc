@@ -71,11 +71,22 @@ export function CreateUrlDialog({
         <form {...getFormProps(form, {})} action={action}>
           <div>{form.errors}</div>
           <div className="grid grid-cols-4 gap-x-4 py-4">
+            <div className="grid col-span-4 grid-cols-4 items-center gap-4 mb-4">
+              <Label htmlFor={fields.shortCode.id} className="text-right">
+                Short Code
+              </Label>
+              <Input
+                {...getInputProps(fields.shortCode, { type: "text" })}
+                placeholder="custom-code (optional)"
+                className="col-span-3"
+                title="Short code can only contain letters, numbers, hyphens and underscores (2-20 characters)"
+              />
+            </div>
             <span
-              id={fields.url.errorId}
+              id={fields.shortCode.errorId}
               className="text-xs col-start-2 col-span-3 text-red-600 text-center"
             >
-              {fields.url.errors}
+              {fields.shortCode.errors?.join(", ")}
             </span>
             <div className="grid col-span-4 grid-cols-4 items-center gap-4 mb-4">
               <Label htmlFor={fields.url.id} className="text-right">
@@ -88,22 +99,11 @@ export function CreateUrlDialog({
               />
             </div>
             <span
-              id={fields.shortCode.errorId}
+              id={fields.url.errorId}
               className="text-xs col-start-2 col-span-3 text-red-600 text-center"
             >
-              {fields.shortCode.errors?.join(", ")}
+              {fields.url.errors}
             </span>
-            <div className="grid col-span-4 grid-cols-4 items-center gap-4 mb-4">
-              <Label htmlFor={fields.shortCode.id} className="text-right">
-                Short Code
-              </Label>
-              <Input
-                {...getInputProps(fields.shortCode, { type: "text" })}
-                placeholder="custom-code (optional)"
-                className="col-span-3"
-                title="Short code can only contain letters, numbers, hyphens and underscores (2-20 characters)"
-              />
-            </div>
             <div className="col-span-4 text-sm text-muted-foreground">
               If you leave <i>Short Code</i> empty, a random one will be
               auto-generated upon submission.
