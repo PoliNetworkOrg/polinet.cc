@@ -4,7 +4,7 @@ export const editUrlSchema = z.object({
   url: z.string().url("Invalid URL format"),
   shortCode: z
     .string()
-    .min(2, "Short code must be at least 3 characters")
+    .min(2, "Short code must be at least 2 characters")
     .max(25, "Short code must be at most 25 characters")
     .regex(
       /^[a-zA-Z0-9_-]+$/,
