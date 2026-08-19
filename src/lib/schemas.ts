@@ -39,3 +39,31 @@ export const GetUrlsQueryParams = z.object({
 export type PaginatedUrlsResponse = z.infer<typeof PaginatedUrlsResponse>
 export type GetUrlsQueryParams = z.infer<typeof GetUrlsQueryParams>
 export type UrlsQueryParams = Partial<GetUrlsQueryParams>
+
+// ── Analytics (privacy-preserving, aggregated) ───────────────────────────────
+
+export const AnalyticsBucketPoint = z.object({
+  bucketStart: z.coerce.date(),
+  clicks: z.number().int().nonnegative(),
+  unique: z.number().int().nonnegative(),
+})
+
+export const AnalyticsCountryPoint = z.object({
+  countryCode: z.string(),
+  clicks: z.number().int().nonnegative(),
+})
+
+export const AnalyticsResult = z.object({
+  shortCode: z.string(),
+  generatedAt: z.coerce.date(),
+  totalClicks: z.number().int().nonnegative(),
+  uniqueToday: z.number().int().nonnegative(),
+  hourly: z.array(AnalyticsBucketPoint),
+  daily: z.array(AnalyticsBucketPoint),
+  monthly: z.array(AnalyticsBucketPoint),
+  countries: z.array(AnalyticsCountryPoint),
+})
+
+export type AnalyticsBucketPoint = z.infer<typeof AnalyticsBucketPoint>
+export type AnalyticsCountryPoint = z.infer<typeof AnalyticsCountryPoint>
+export type AnalyticsResult = z.infer<typeof AnalyticsResult>

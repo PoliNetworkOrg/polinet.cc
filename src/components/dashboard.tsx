@@ -35,6 +35,7 @@ import { env } from "@/env"
 import { useUrls } from "@/hooks/urls"
 import type { UrlRecord, UrlsQueryParams } from "@/lib/schemas"
 import { copyToClipboard, makeShortUrl } from "@/lib/utils"
+import { AnalyticsDialog } from "./analytics-dialog"
 import { CreateUrlDialog } from "./create-url-dialog"
 import { type EditDialogState, EditUrlDialog } from "./edit-url-dialog"
 import { PaginationControls } from "./pagination"
@@ -62,6 +63,10 @@ export function Dashboard() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialog, setEditDialog] = useState<EditDialogState>({ open: false })
   const [qrDialog, setQrDialog] = useState<{
+    open: boolean
+    url?: UrlRecord
+  }>({ open: false })
+  const [analyticsDialog, setAnalyticsDialog] = useState<{
     open: boolean
     url?: UrlRecord
   }>({ open: false })
@@ -226,6 +231,9 @@ export function Dashboard() {
                     onDelete={(url) => handleDelete(url.short_code)}
                     onEdit={(url) => setEditDialog({ open: true, url })}
                     onQrCode={(url) => setQrDialog({ open: true, url })}
+                    onAnalytics={(url) =>
+                      setAnalyticsDialog({ open: true, url })
+                    }
                   />
                 ))}
               </div>
@@ -251,6 +259,9 @@ export function Dashboard() {
                       onDelete={(url) => handleDelete(url.short_code)}
                       onEdit={(url) => setEditDialog({ open: true, url })}
                       onQrCode={(url) => setQrDialog({ open: true, url })}
+                      onAnalytics={(url) =>
+                        setAnalyticsDialog({ open: true, url })
+                      }
                     />
                   ))}
                 </TableBody>
@@ -304,6 +315,12 @@ export function Dashboard() {
         open={qrDialog.open}
         url={qrDialog.url}
         onOpenChange={(open) => setQrDialog((prev) => ({ ...prev, open }))}
+      />
+
+      <AnalyticsDialog
+        open={analyticsDialog.open}
+        url={analyticsDialog.url}
+        onClose={() => setAnalyticsDialog({ open: false })}
       />
     </div>
   )

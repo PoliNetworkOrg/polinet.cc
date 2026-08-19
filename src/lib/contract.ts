@@ -1,6 +1,11 @@
 import { initContract } from "@ts-rest/core"
 import z from "zod"
-import { GetUrlsQueryParams, PaginatedUrlsResponse, URLRecord } from "./schemas"
+import {
+  AnalyticsResult,
+  GetUrlsQueryParams,
+  PaginatedUrlsResponse,
+  URLRecord,
+} from "./schemas"
 import { createUrlSchema } from "./validations"
 
 const c = initContract()
@@ -55,5 +60,14 @@ export const contract = c.router({
       404: APIError,
     },
     summary: "Delete a short URL",
+  },
+  getAnalytics: {
+    method: "GET",
+    path: "/urls/:shortCode/analytics",
+    responses: {
+      200: AnalyticsResult,
+      404: APIError,
+    },
+    summary: "Get privacy-preserving aggregated click analytics for a URL",
   },
 })

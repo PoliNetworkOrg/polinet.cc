@@ -27,6 +27,15 @@ export const env = createEnv({
     DB_PASS: z.string().min(1),
     DB_NAME: z.string().min(3).default("url_shortener"),
     DB_URL: z.string().url().optional(),
+    // Secret key for the HMAC used to derive the daily, per-link visitor hash
+    // that estimates unique clicks without cookies. Keep it secret and stable.
+    ANALYTICS_HASH_SECRET: z.string().min(16),
+    // Optional override for the request header a trusted proxy/CDN uses to
+    // expose the visitor's country (e.g. "cf-ipcountry"). When set it is used
+    // EXCLUSIVELY (no fallback to other, client-settable headers). Leave unset
+    // to trust the built-in edge headers (Cloudflare/Vercel). Country-level
+    // only — never city/GPS.
+    GEO_COUNTRY_HEADER: z.string().optional(),
   },
 
   runtimeEnv: {
@@ -40,6 +49,8 @@ export const env = createEnv({
     DB_NAME: process.env.DB_NAME,
     NODE_ENV: process.env.NODE_ENV,
     DB_URL: process.env.DB_URL,
+    ANALYTICS_HASH_SECRET: process.env.ANALYTICS_HASH_SECRET,
+    GEO_COUNTRY_HEADER: process.env.GEO_COUNTRY_HEADER,
   },
 
   /**

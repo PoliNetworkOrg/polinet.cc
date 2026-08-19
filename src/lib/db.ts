@@ -1,5 +1,6 @@
 import { Pool, type PoolConfig } from "pg"
 import { env } from "@/env"
+import { ANALYTICS_SCHEMA_SQL } from "./analytics-schema"
 
 let pool: Pool | null = null
 
@@ -49,6 +50,17 @@ async function initDatabase() {
   }
 }
 
+async function migrateDatabase() {
+  const pool = getPool()
+
+  try {
+    // Privacy-preserving click analytics (aggregate-only). See analytics-schema.ts.
+    await pool.query(ANALYTICS_SCHEMA_SQL)
+  } catch (error) {
+    console.error("Error running database migrations:", error)
+  }
+}
+
 let init = false
 // Skip initialization if env where not validated
 // this doesn't prevent DB calls to be made, but if the env is not validated
@@ -57,8 +69,9 @@ let init = false
 if (!init && !process.env.SKIP_ENV_VALIDATION) {
   init = true
   initDatabase()
+    .then(() => migrateDatabase())
     .then(() => {
-      console.log("Database initialized successfully")
+      console.log("Database initialized and migrated successfully")
     })
     .catch((error) => {
       console.error("Error during database initialization:", error)

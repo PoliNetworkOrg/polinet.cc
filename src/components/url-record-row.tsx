@@ -1,5 +1,6 @@
 import {
   ArrowRight,
+  ChartColumn,
   Copy,
   Diamond,
   Edit,
@@ -19,6 +20,7 @@ export type UrlRecordRowProps = {
   onDelete: (url: UrlRecord) => void
   onEdit: (url: UrlRecord) => void
   onQrCode: (url: UrlRecord) => void
+  onAnalytics: (url: UrlRecord) => void
 }
 
 export function MobileRow({
@@ -27,6 +29,7 @@ export function MobileRow({
   onDelete,
   onEdit,
   onQrCode,
+  onAnalytics,
 }: UrlRecordRowProps) {
   const shortUrl = makeShortUrl(url)
   return (
@@ -78,6 +81,14 @@ export function MobileRow({
           {url.created_at.toLocaleString()}
         </span>
         <div className="flex justify-end items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onAnalytics(url)}
+            title="View analytics"
+          >
+            <ChartColumn />
+          </Button>
           <Button variant="ghost" size="icon" onClick={() => onQrCode(url)}>
             <QrCode />
           </Button>
@@ -149,6 +160,14 @@ export function UrlRecordRow({ url, ...props }: UrlRecordRowProps) {
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => props.onAnalytics(url)}
+            title="View analytics"
+          >
+            <ChartColumn />
+          </Button>
           <Button
             variant="ghost"
             size="icon"
