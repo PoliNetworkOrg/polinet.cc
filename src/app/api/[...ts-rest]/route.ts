@@ -23,7 +23,8 @@ const handler = createNextHandler(
       try {
         const urlRecord = await urlService.createShortUrl(
           body.url,
-          body.shortCode
+          body.shortCode,
+          body.aliases
         )
         return {
           status: 201,
@@ -53,7 +54,11 @@ const handler = createNextHandler(
       }
     },
     updateUrl: async ({ params, body }) => {
-      const urlRecord = await urlService.updateUrl(params.shortCode, body.url)
+      const urlRecord = await urlService.updateUrl(
+        params.shortCode,
+        body.url,
+        body.aliases
+      )
       if (!urlRecord) {
         return {
           status: 404,
@@ -76,6 +81,89 @@ const handler = createNextHandler(
       return {
         status: 204,
         body: undefined,
+      }
+    },
+    addAlias: async ({ params, body }) => {
+      const urlRecord = await urlService.getUrlByShortCode(params.shortCode)
+      if (!urlRecord) {
+        return {
+          status: 404,
+          body: { error: "URL not found" },
+        }
+      }
+      try {
+        await urlService.addAlias(urlRecord.id, body.aliasCode)
+        return {
+          status: 201,
+          body: undefined,
+        }
+      } catch (error) {
+        return {
+          status: 400,
+          body: {
+            error:
+              error instanceof Error ? error.message : "Failed to add alias",
+          },
+        }
+      }
+    },
+    removeAlias: async ({ params }) => {
+      const urlRecord = await urlService.getUrlByShortCode(params.shortCode)
+      if (!urlRecord) {
+        return {
+          status: 404,
+          body: { error: "URL not found" },
+        }
+      }
+      const removed = await urlService.removeAlias(
+        urlRecord.id,
+        params.aliasCode
+      )
+      if (!removed) {
+        return {
+          status: 404,
+          body: { error: "Alias not found" },
+        }
+      }
+      return {
+        status: 204,
+        body: undefined,
+      }
+    },
+    promoteAlias: async ({ params }) => {
+      const urlRecord = await urlService.getUrlByShortCode(params.shortCode)
+      if (!urlRecord) {
+        return {
+          status: 404,
+          body: { error: "URL not found" },
+        }
+      }
+      const promoted = await urlService.promoteAlias(
+        urlRecord.id,
+        params.aliasCode
+      )
+      if (!promoted) {
+        return {
+          status: 404,
+          body: { error: "Alias not found" },
+        }
+      }
+      return {
+        status: 200,
+        body: promoted,
+      }
+    },
+    getAliasStats: async ({ params }) => {
+      const stats = await urlService.getAliasStats(params.shortCode)
+      if (!stats) {
+        return {
+          status: 404,
+          body: { error: "URL not found" },
+        }
+      }
+      return {
+        status: 200,
+        body: stats,
       }
     },
   },
