@@ -9,6 +9,8 @@
     "start": "next start",
     "check": "biome check",
     "check:fix": "biome check --write",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "docker:build": "docker build -t tmsu-cc .",
     "docker:run": "docker run -p 6111:6111 tmsu-cc",
     "docker:dev": "docker-compose up --build",
@@ -62,9 +64,11 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "^1.0.0",
+    "pg-mem": "^3.0.14",
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.8",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   },
   "packageManager": "pnpm@10.33.0+sha512.10568bb4a6afb58c9eb3630da90cc9516417abebd3fabbe6739f0ae795728da1491e9db5a544c76ad8eb7570f5c4bb3d6c637b2cb41bfdcdb47fa823c8649319"
 }
