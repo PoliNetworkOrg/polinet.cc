@@ -1,7 +1,7 @@
 import { initContract } from "@ts-rest/core"
 import z from "zod"
 import { GetUrlsQueryParams, PaginatedUrlsResponse, URLRecord } from "./schemas"
-import { createUrlSchema } from "./validations"
+import { createUrlSchema, tagSchema } from "./validations"
 
 const c = initContract()
 
@@ -55,5 +55,32 @@ export const contract = c.router({
       404: APIError,
     },
     summary: "Delete a short URL",
+  },
+  getAllTags: {
+    method: "GET",
+    path: "/tags",
+    responses: {
+      200: z.array(z.string()),
+    },
+    summary: "Get all distinct tags in use",
+  },
+  addTag: {
+    method: "POST",
+    path: "/urls/:shortCode/tags",
+    body: tagSchema,
+    responses: {
+      201: z.void(),
+      404: APIError,
+    },
+    summary: "Add a tag to a URL",
+  },
+  removeTag: {
+    method: "DELETE",
+    path: "/urls/:shortCode/tags/:tagName",
+    responses: {
+      204: z.void(),
+      404: APIError,
+    },
+    summary: "Remove a tag from a URL",
   },
 })

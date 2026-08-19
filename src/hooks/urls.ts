@@ -11,6 +11,7 @@ async function fetchUrls(params: UrlsQueryParams) {
   if (params.sortBy) queryParams.set("sortBy", params.sortBy)
   if (params.sortOrder) queryParams.set("sortOrder", params.sortOrder)
   if (params.customOnly) queryParams.set("customOnly", "true")
+  if (params.tag) queryParams.set("tag", params.tag)
 
   const response = await fetch(`/api/urls?${queryParams.toString()}`)
 
@@ -47,6 +48,27 @@ export function useUrls(params: UrlsQueryParams = {}) {
     pagination: query.data?.pagination,
     loading: query.isLoading,
     error: query.error,
+    refetch: query.refetch,
+  }
+}
+
+async function fetchAllTags(): Promise<string[]> {
+  const response = await fetch("/api/tags")
+  if (!response.ok) {
+    throw new Error("Failed to fetch tags")
+  }
+  return response.json()
+}
+
+export function useAllTags() {
+  const query = useQuery({
+    queryKey: ["tags"],
+    queryFn: fetchAllTags,
+    staleTime: 1000 * 60,
+  })
+
+  return {
+    tags: query.data ?? [],
     refetch: query.refetch,
   }
 }

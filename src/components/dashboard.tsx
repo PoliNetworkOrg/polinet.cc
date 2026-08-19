@@ -1,7 +1,7 @@
 "use client"
 
 import { SiGithub as Github } from "@icons-pack/react-simple-icons"
-import { FileCodeCorner, Plus, Search, Star } from "lucide-react"
+import { FileCodeCorner, Plus, Search, Star, Tag, X } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { useState } from "react"
@@ -32,9 +32,9 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { env } from "@/env"
-import { useUrls } from "@/hooks/urls"
+import { useAllTags, useUrls } from "@/hooks/urls"
 import type { UrlRecord, UrlsQueryParams } from "@/lib/schemas"
-import { copyToClipboard, makeShortUrl } from "@/lib/utils"
+import { copyToClipboard, getTagColor, makeShortUrl } from "@/lib/utils"
 import { CreateUrlDialog } from "./create-url-dialog"
 import { type EditDialogState, EditUrlDialog } from "./edit-url-dialog"
 import { PaginationControls } from "./pagination"
@@ -58,6 +58,7 @@ export function Dashboard() {
   }
 
   const { urls, pagination, loading, refetch } = useUrls(queryParams)
+  const { tags: allTags, refetch: refetchTags } = useAllTags()
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialog, setEditDialog] = useState<EditDialogState>({ open: false })
@@ -70,6 +71,14 @@ export function Dashboard() {
     setQueryParams((prev) => ({
       ...prev,
       customOnly: !prev.customOnly,
+      page: 1,
+    }))
+  }
+
+  const handleTagFilter = (tag: string) => {
+    setQueryParams((prev) => ({
+      ...prev,
+      tag: tag === "__all__" ? undefined : tag,
       page: 1,
     }))
   }
@@ -114,6 +123,7 @@ export function Dashboard() {
   }
 
   const currentSort = `${qp.sortBy}-${qp.sortOrder}`
+  const activeTag = qp.tag
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -194,6 +204,49 @@ export function Dashboard() {
                   </SelectItem>
                 </SelectContent>
               </Select>
+
+              {allTags.length > 0 && (
+                <div className="flex items-center gap-1">
+                  <Tag className="h-4 w-4 text-muted-foreground" />
+                  <Select
+                    value={activeTag ?? "__all__"}
+                    onValueChange={handleTagFilter}
+                  >
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue placeholder="All tags" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">All tags</SelectItem>
+                      {allTags.map((tag) => {
+                        const color = getTagColor(tag)
+                        return (
+                          <SelectItem key={tag} value={tag}>
+                            <span className="flex items-center gap-2">
+                              <span
+                                className="inline-block w-2 h-2 rounded-full"
+                                style={{ backgroundColor: color.text }}
+                              />
+                              {tag}
+                            </span>
+                          </SelectItem>
+                        )
+                      })}
+                    </SelectContent>
+                  </Select>
+                  {activeTag && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleTagFilter("__all__")}
+                      title="Clear tag filter"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+              )}
+
               <Toggle
                 pressed={queryParams.customOnly}
                 onPressedChange={handleCustomOnlyToggle}
@@ -287,6 +340,7 @@ export function Dashboard() {
         onOpenChange={setCreateDialogOpen}
         onSuccess={() => {
           refetch()
+          refetchTags()
           setCreateDialogOpen(false)
         }}
       />
@@ -296,6 +350,7 @@ export function Dashboard() {
         onClose={() => setEditDialog({ open: false })}
         onSuccess={() => {
           refetch()
+          refetchTags()
           setEditDialog({ open: false })
         }}
       />

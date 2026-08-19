@@ -9,9 +9,10 @@ import {
   Trash2,
 } from "lucide-react"
 import type { UrlRecord } from "@/lib/schemas"
-import { copyToClipboard, makeShortUrl } from "@/lib/utils"
+import { copyToClipboard, getTagColor, makeShortUrl } from "@/lib/utils"
 import { Button } from "./ui/button"
 import { TableCell, TableRow } from "./ui/table"
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 
 export type UrlRecordRowProps = {
   url: UrlRecord
@@ -19,6 +20,34 @@ export type UrlRecordRowProps = {
   onDelete: (url: UrlRecord) => void
   onEdit: (url: UrlRecord) => void
   onQrCode: (url: UrlRecord) => void
+}
+
+function TagBadges({ tags }: { tags: string[] }) {
+  if (!tags || tags.length === 0) return null
+  return (
+    <>
+      {tags.map((tag) => {
+        const c = getTagColor(tag)
+        return (
+          <Tooltip key={tag}>
+            <TooltipTrigger asChild>
+              <span
+                style={{
+                  backgroundColor: c.bg,
+                  color: c.text,
+                  border: `1px solid ${c.border}`,
+                }}
+                className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium max-w-[9rem] truncate cursor-default select-none transition-opacity hover:opacity-80"
+              >
+                {tag}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">{tag}</TooltipContent>
+          </Tooltip>
+        )
+      })}
+    </>
+  )
 }
 
 export function MobileRow({
@@ -51,6 +80,11 @@ export function MobileRow({
           <Copy />
         </Button>
       </div>
+      {url.tags && url.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1 pl-6">
+          <TagBadges tags={url.tags} />
+        </div>
+      )}
       <div className="flex justify-start gap-2 items-center">
         <ArrowRight className="text-blue-400" />
         <a
@@ -105,7 +139,7 @@ export function UrlRecordRow({ url, ...props }: UrlRecordRowProps) {
         )}
       </TableCell>
       <TableCell>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <a
             href={shortUrl}
             target="_blank"
@@ -114,6 +148,7 @@ export function UrlRecordRow({ url, ...props }: UrlRecordRowProps) {
           >
             {shortUrl}
           </a>
+          <TagBadges tags={url.tags ?? []} />
           <Button variant="ghost" size="icon" onClick={() => props.onCopy(url)}>
             <Copy />
           </Button>

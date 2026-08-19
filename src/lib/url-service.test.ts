@@ -12,6 +12,12 @@ const SCHEMA_SQL = `
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     click_count INTEGER DEFAULT 0
   );
+
+  CREATE TABLE url_tags (
+    url_id INTEGER NOT NULL REFERENCES urls(id) ON DELETE CASCADE,
+    tag_name VARCHAR(50) NOT NULL,
+    PRIMARY KEY (url_id, tag_name)
+  );
 `
 
 let pool: Pool
@@ -120,5 +126,53 @@ describe("UrlService", () => {
     })
     expect(page1.urls.map((u) => u.short_code)).toEqual(["one", "three"])
     expect(page1.pagination.totalPages).toBe(2)
+  })
+
+  it("creates a URL with tags and lists all distinct tags", async () => {
+    const { UrlService } = await import("./url-service")
+    const service = new UrlService()
+
+    const record = await service.createShortUrl("https://example.com", "abc", [
+      "work",
+      "personal",
+    ])
+    expect(record.tags).toEqual(["personal", "work"])
+    expect(await service.getAllTags()).toEqual(["personal", "work"])
+  })
+
+  it("adds and removes tags from an existing URL", async () => {
+    const { UrlService } = await import("./url-service")
+    const service = new UrlService()
+    const record = await service.createShortUrl("https://example.com", "abc")
+
+    await service.addTag(record.id, "work")
+    expect(await service.getTagsForUrl(record.id)).toEqual(["work"])
+
+    expect(await service.removeTag(record.id, "work")).toBe(true)
+    expect(await service.getTagsForUrl(record.id)).toEqual([])
+  })
+
+  it("reconciles tags to an explicit list on update, including clearing them", async () => {
+    const { UrlService } = await import("./url-service")
+    const service = new UrlService()
+    await service.createShortUrl("https://example.com", "abc", ["work"])
+
+    const updated = await service.updateUrl("abc", "https://example.com", [
+      "personal",
+    ])
+    expect(updated?.tags).toEqual(["personal"])
+
+    const cleared = await service.updateUrl("abc", "https://example.com", [])
+    expect(cleared?.tags).toEqual([])
+  })
+
+  it("filters URLs by tag", async () => {
+    const { UrlService } = await import("./url-service")
+    const service = new UrlService()
+    await service.createShortUrl("https://example.com/one", "one", ["work"])
+    await service.createShortUrl("https://example.com/two", "two", ["personal"])
+
+    const filtered = await service.getAllUrls({ tag: "work" })
+    expect(filtered.urls.map((u) => u.short_code)).toEqual(["one"])
   })
 })
