@@ -4,7 +4,7 @@ import { getFormProps, getInputProps, useForm } from "@conform-to/react"
 import { getZodConstraint, parseWithZod } from "@conform-to/zod"
 import { X } from "lucide-react"
 import { nanoid } from "nanoid"
-import { useActionState, useCallback, useState } from "react"
+import { useActionState, useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import {
@@ -143,6 +143,21 @@ export function CreateUrlDialog({
     shouldValidate: "onBlur",
     shouldRevalidate: "onInput",
   })
+
+  const onSuccessRef = useRef(onSuccess)
+  useEffect(() => {
+    onSuccessRef.current = onSuccess
+  })
+
+  useEffect(() => {
+    if (lastResult && form.status === "success") {
+      toast.success("Short URL created successfully!")
+      onSuccessRef.current()
+    } else if (lastResult && error) {
+      console.error("Error creating URL:", error)
+      toast.error(`Error creating URL: ${error}`)
+    }
+  }, [lastResult, error, form.status])
 
   const randomCode = useCallback(() => nanoid(8), [])
   const isRandom = !(fields.shortCode.value && fields.shortCode.valid)

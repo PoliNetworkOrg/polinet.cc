@@ -3,7 +3,7 @@
 import { getFormProps, getInputProps, useForm } from "@conform-to/react"
 import { getZodConstraint, parseWithZod } from "@conform-to/zod"
 import { X } from "lucide-react"
-import { useActionState, useEffect, useState } from "react"
+import { useActionState, useEffect, useState, useRef } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import {
@@ -49,15 +49,6 @@ export function EditUrlDialog({
     constraint: getZodConstraint(editUrlSchema),
     onValidate: ({ formData }) =>
       parseWithZod(formData, { schema: editUrlSchema }),
-    onSubmit: () => {
-      if (error) {
-        console.error("Error editing URL:", error)
-        toast.error(`Error editing URL: ${error}`)
-      } else {
-        toast.success("Short URL edited successfully!")
-      }
-      onSuccess()
-    },
     shouldValidate: "onBlur",
     shouldRevalidate: "onInput",
   })
@@ -89,8 +80,23 @@ export function EditUrlDialog({
     setTagInput("")
     setTagError(null)
   }
+
   const removeTag = (tag: string) =>
     setTags((prev) => prev.filter((t) => t !== tag))
+  const onSuccessRef = useRef(onSuccess)
+  useEffect(() => {
+    onSuccessRef.current = onSuccess
+  })
+
+  useEffect(() => {
+    if (lastResult && form.status === "success") {
+      toast.success("Short URL edited successfully!")
+      onSuccessRef.current()
+    } else if (lastResult && error) {
+      console.error("Error editing URL:", error)
+      toast.error(`Error editing URL: ${error}`)
+    }
+  }, [lastResult, error, form.status])
 
   return (
     <Dialog open={state.open} onOpenChange={(open) => !open && onClose()}>
