@@ -51,14 +51,14 @@ export function CreateUrlDialog({
   })
 
   useEffect(() => {
-    if (lastResult && !error) {
+    if (lastResult && form.status === "success") {
       toast.success("Short URL created successfully!")
       onSuccessRef.current()
     } else if (lastResult && error) {
       console.error("Error creating URL:", error)
       toast.error(`Error creating URL: ${error}`)
     }
-  }, [lastResult, error])
+  }, [lastResult, error, form.status])
 
   const randomCode = useCallback(() => nanoid(8), [])
   const isRandom = !(fields.shortCode.value && fields.shortCode.valid)

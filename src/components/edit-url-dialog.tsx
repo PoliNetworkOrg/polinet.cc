@@ -58,14 +58,14 @@ export function EditUrlDialog({
   })
 
   useEffect(() => {
-    if (lastResult && !error) {
+    if (lastResult && form.status === "success") {
       toast.success("Short URL edited successfully!")
       onSuccessRef.current()
     } else if (lastResult && error) {
       console.error("Error editing URL:", error)
       toast.error(`Error editing URL: ${error}`)
     }
-  }, [lastResult, error])
+  }, [lastResult, error, form.status])
 
   return (
     <Dialog open={state.open} onOpenChange={(open) => !open && onClose()}>
