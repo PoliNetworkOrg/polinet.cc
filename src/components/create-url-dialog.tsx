@@ -129,17 +129,6 @@ export function CreateUrlDialog({
     constraint: getZodConstraint(createUrlSchema),
     onValidate: ({ formData }) =>
       parseWithZod(formData, { schema: createUrlSchema }),
-    onSubmit: () => {
-      if (error) {
-        console.error("Error creating URL:", error)
-        toast.error(`Error creating URL: ${error}`)
-      } else {
-        toast.success("Short URL created successfully!")
-        setTags([])
-      }
-      onSuccess()
-    },
-
     shouldValidate: "onBlur",
     shouldRevalidate: "onInput",
   })
@@ -152,12 +141,17 @@ export function CreateUrlDialog({
   useEffect(() => {
     if (lastResult && form.status === "success") {
       toast.success("Short URL created successfully!")
+      setTags([])
       onSuccessRef.current()
     } else if (lastResult && error) {
       console.error("Error creating URL:", error)
       toast.error(`Error creating URL: ${error}`)
     }
   }, [lastResult, error, form.status])
+
+  useEffect(() => {
+    if (!open) setTags([])
+  }, [open])
 
   const randomCode = useCallback(() => nanoid(8), [])
   const isRandom = !(fields.shortCode.value && fields.shortCode.valid)

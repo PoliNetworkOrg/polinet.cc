@@ -113,7 +113,10 @@ const handler = createNextHandler(
           body: { error: "URL not found" },
         }
       }
-      await urlService.removeTag(urlRecord.id, params.tagName)
+      await urlService.removeTag(
+        urlRecord.id,
+        decodeURIComponent(params.tagName)
+      )
       return {
         status: 204,
         body: undefined,

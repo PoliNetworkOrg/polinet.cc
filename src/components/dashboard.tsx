@@ -42,6 +42,9 @@ import { QrCodeDialog } from "./qr-code-dialog"
 import { Toggle } from "./ui/toggle"
 import { MobileRow, UrlRecordRow } from "./url-record-row"
 
+const ALL_TAGS_VALUE = "__all__"
+const TAG_VALUE_PREFIX = "tag:"
+
 export function Dashboard() {
   const [searchInput, setSearchInput] = useState("")
   const [debouncedSearch] = useDebounce(searchInput, 300)
@@ -75,10 +78,12 @@ export function Dashboard() {
     }))
   }
 
-  const handleTagFilter = (tag: string) => {
+  const handleTagFilter = (value: string) => {
     setQueryParams((prev) => ({
       ...prev,
-      tag: tag === "__all__" ? undefined : tag,
+      tag: value.startsWith(TAG_VALUE_PREFIX)
+        ? value.slice(TAG_VALUE_PREFIX.length)
+        : undefined,
       page: 1,
     }))
   }
@@ -205,40 +210,53 @@ export function Dashboard() {
                 </SelectContent>
               </Select>
 
-              {allTags.length > 0 && (
+              {(allTags.length > 0 || activeTag !== undefined) && (
                 <div className="flex items-center gap-1">
-                  <Tag className="h-4 w-4 text-muted-foreground" />
-                  <Select
-                    value={activeTag ?? "__all__"}
-                    onValueChange={handleTagFilter}
-                  >
-                    <SelectTrigger className="w-[160px]">
-                      <SelectValue placeholder="All tags" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__all__">All tags</SelectItem>
-                      {allTags.map((tag) => {
-                        const color = getTagColor(tag)
-                        return (
-                          <SelectItem key={tag} value={tag}>
-                            <span className="flex items-center gap-2">
-                              <span
-                                className="inline-block w-2 h-2 rounded-full"
-                                style={{ backgroundColor: color.text }}
-                              />
-                              {tag}
-                            </span>
+                  {allTags.length > 0 && (
+                    <>
+                      <Tag className="h-4 w-4 text-muted-foreground" />
+                      <Select
+                        value={
+                          activeTag === undefined
+                            ? ALL_TAGS_VALUE
+                            : `${TAG_VALUE_PREFIX}${activeTag}`
+                        }
+                        onValueChange={handleTagFilter}
+                      >
+                        <SelectTrigger className="w-[160px]">
+                          <SelectValue placeholder="All tags" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={ALL_TAGS_VALUE}>
+                            All tags
                           </SelectItem>
-                        )
-                      })}
-                    </SelectContent>
-                  </Select>
-                  {activeTag && (
+                          {allTags.map((tag) => {
+                            const color = getTagColor(tag)
+                            return (
+                              <SelectItem
+                                key={tag}
+                                value={`${TAG_VALUE_PREFIX}${tag}`}
+                              >
+                                <span className="flex items-center gap-2">
+                                  <span
+                                    className="inline-block w-2 h-2 rounded-full"
+                                    style={{ backgroundColor: color.text }}
+                                  />
+                                  {tag}
+                                </span>
+                              </SelectItem>
+                            )
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </>
+                  )}
+                  {activeTag !== undefined && (
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
-                      onClick={() => handleTagFilter("__all__")}
+                      onClick={() => handleTagFilter(ALL_TAGS_VALUE)}
                       title="Clear tag filter"
                     >
                       <X className="h-3 w-3" />
