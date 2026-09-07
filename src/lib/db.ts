@@ -40,30 +40,19 @@ async function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_created_at ON urls(created_at);
     CREATE INDEX IF NOT EXISTS idx_updated_at ON urls(updated_at);
     CREATE INDEX IF NOT EXISTS idx_click_count ON urls(click_count);
+  
+    CREATE TABLE IF NOT EXISTS url_tags (
+      url_id INTEGER NOT NULL REFERENCES urls(id) ON DELETE CASCADE,
+      tag_name VARCHAR(50) NOT NULL,
+      PRIMARY KEY (url_id, tag_name)
+    );
+    CREATE INDEX IF NOT EXISTS idx_url_tags_tag_name ON url_tags(tag_name);
   `
 
   try {
     await pool.query(createTableQuery)
   } catch (error) {
     console.error("Error initializing database:", error)
-  }
-}
-
-async function migrateDatabase() {
-  const pool = getPool()
-
-  try {
-    // Multi-tag junction table: a URL can have any number of free-text tags
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS url_tags (
-        url_id INTEGER NOT NULL REFERENCES urls(id) ON DELETE CASCADE,
-        tag_name VARCHAR(50) NOT NULL,
-        PRIMARY KEY (url_id, tag_name)
-      );
-      CREATE INDEX IF NOT EXISTS idx_url_tags_tag_name ON url_tags(tag_name);
-    `)
-  } catch (error) {
-    console.error("Error running database migrations:", error)
   }
 }
 
@@ -75,9 +64,8 @@ let init = false
 if (!init && !process.env.SKIP_ENV_VALIDATION) {
   init = true
   initDatabase()
-    .then(() => migrateDatabase())
     .then(() => {
-      console.log("Database initialized and migrated successfully")
+      console.log("Database initialized successfully")
     })
     .catch((error) => {
       console.error("Error during database initialization:", error)
