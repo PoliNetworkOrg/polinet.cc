@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-const tagValidator = z.string().min(1).max(50).trim()
+const tagValidator = z.string().trim().min(1).max(50)
 
 export const editUrlSchema = z.object({
   url: z.string().url("Invalid URL format"),

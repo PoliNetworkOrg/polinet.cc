@@ -1,4 +1,5 @@
 import { nanoid } from "nanoid"
+import type { PoolClient } from "pg"
 import { getPool } from "./db"
 import {
   type GetUrlsQueryParams,
@@ -8,6 +9,8 @@ import {
   type UrlRecord,
 } from "./schemas"
 
+type QueryClient = Pick<PoolClient, "query">
+
 export class UrlService {
   private pool = getPool()
 
@@ -16,49 +19,58 @@ export class UrlService {
     customShortCode?: string,
     tags?: string[]
   ): Promise<UrlRecord> {
-    let shortCode: string
-    let isCustom = true
+    const client = await this.pool.connect()
 
-    if (customShortCode) {
-      // Check if custom short code already exists
-      const existingUrl = await this.getUrlByShortCode(customShortCode)
-      if (existingUrl) {
-        throw new Error(
-          "Short code already exists. Please choose a different one."
+    try {
+      await client.query("BEGIN")
+
+      let shortCode: string
+      let isCustom = true
+
+      if (customShortCode) {
+        const existingUrl = await client.query(
+          "SELECT 1 FROM urls WHERE short_code = $1",
+          [customShortCode]
         )
+        if (existingUrl.rows[0]) {
+          throw new Error(
+            "Short code already exists. Please choose a different one."
+          )
+        }
+        shortCode = customShortCode
+      } else {
+        shortCode = nanoid(8)
+        isCustom = false
       }
-      shortCode = customShortCode
-    } else {
-      // Generate a unique short code
-      shortCode = nanoid(8)
-      isCustom = false
+
+      const result = await client.query(
+        `
+          INSERT INTO urls (original_url, short_code, is_custom)
+          VALUES ($1, $2, $3)
+          RETURNING *
+        `,
+        [originalUrl, shortCode, isCustom]
+      )
+      const urlRecord = result.rows[0]
+
+      await this.syncTags(client, urlRecord.id, tags ?? [])
+      const recordWithTags = await this.attachTags(client, urlRecord)
+
+      await client.query("COMMIT")
+      return recordWithTags
+    } catch (error) {
+      await client.query("ROLLBACK")
+      throw error
+    } finally {
+      client.release()
     }
-
-    const query = `
-      INSERT INTO urls (original_url, short_code, is_custom)
-      VALUES ($1, $2, $3)
-      RETURNING *
-    `
-
-    const result = await this.pool.query(query, [
-      originalUrl,
-      shortCode,
-      isCustom,
-    ])
-    const urlRecord = result.rows[0]
-
-    for (const tag of tags ?? []) {
-      await this.addTag(urlRecord.id, tag)
-    }
-
-    return this.attachTags(urlRecord)
   }
 
   async getUrlByShortCode(shortCode: string): Promise<UrlRecord | null> {
     const query = "SELECT * FROM urls WHERE short_code = $1"
     const result = await this.pool.query(query, [shortCode])
     if (!result.rows[0]) return null
-    return this.attachTags(result.rows[0])
+    return this.attachTags(this.pool, result.rows[0])
   }
 
   async getAllUrls(
@@ -140,19 +152,41 @@ export class UrlService {
     originalUrl: string,
     tags: string[] = []
   ): Promise<UrlRecord | null> {
-    const query = `
-      UPDATE urls
-      SET original_url = $1, updated_at = CURRENT_TIMESTAMP
-      WHERE short_code = $2
-      RETURNING *
-    `
+    const client = await this.pool.connect()
 
-    const result = await this.pool.query(query, [originalUrl, shortCode])
-    if (!result.rows[0]) return null
+    try {
+      await client.query("BEGIN")
 
-    await this.syncTags(result.rows[0].id, tags)
+      const lockedUrl = await client.query(
+        "SELECT id FROM urls WHERE short_code = $1 FOR UPDATE",
+        [shortCode]
+      )
+      if (!lockedUrl.rows[0]) {
+        await client.query("COMMIT")
+        return null
+      }
 
-    return this.attachTags(result.rows[0])
+      const result = await client.query(
+        `
+          UPDATE urls
+          SET original_url = $1, updated_at = CURRENT_TIMESTAMP
+          WHERE id = $2
+          RETURNING *
+        `,
+        [originalUrl, lockedUrl.rows[0].id]
+      )
+
+      await this.syncTags(client, result.rows[0].id, tags)
+      const recordWithTags = await this.attachTags(client, result.rows[0])
+
+      await client.query("COMMIT")
+      return recordWithTags
+    } catch (error) {
+      await client.query("ROLLBACK")
+      throw error
+    } finally {
+      client.release()
+    }
   }
 
   async deleteUrl(shortCode: string): Promise<boolean> {
@@ -180,43 +214,73 @@ export class UrlService {
   }
 
   async addTag(urlId: number, tagName: string): Promise<void> {
-    await this.pool.query(
+    await this.addTagWithClient(this.pool, urlId, tagName)
+  }
+
+  async removeTag(urlId: number, tagName: string): Promise<boolean> {
+    return this.removeTagWithClient(this.pool, urlId, tagName)
+  }
+
+  async getTagsForUrl(urlId: number): Promise<string[]> {
+    return this.getTagsForUrlWithClient(this.pool, urlId)
+  }
+
+  /** Reconciles a URL's tags to exactly match `tags` (adds new, removes missing) */
+  private async syncTags(
+    client: PoolClient,
+    urlId: number,
+    tags: string[]
+  ): Promise<void> {
+    const current = new Set(await this.getTagsForUrlWithClient(client, urlId))
+    const next = new Set(tags.map((t) => t.trim()).filter(Boolean))
+
+    for (const tag of next) {
+      if (!current.has(tag)) await this.addTagWithClient(client, urlId, tag)
+    }
+    for (const tag of current) {
+      if (!next.has(tag)) await this.removeTagWithClient(client, urlId, tag)
+    }
+  }
+
+  private async addTagWithClient(
+    client: QueryClient,
+    urlId: number,
+    tagName: string
+  ): Promise<void> {
+    await client.query(
       "INSERT INTO url_tags (url_id, tag_name) VALUES ($1, $2) ON CONFLICT DO NOTHING",
       [urlId, tagName.trim()]
     )
   }
 
-  async removeTag(urlId: number, tagName: string): Promise<boolean> {
-    const result = await this.pool.query(
+  private async removeTagWithClient(
+    client: QueryClient,
+    urlId: number,
+    tagName: string
+  ): Promise<boolean> {
+    const result = await client.query(
       "DELETE FROM url_tags WHERE url_id = $1 AND tag_name = $2",
       [urlId, tagName]
     )
     return (result.rowCount ?? 0) > 0
   }
 
-  async getTagsForUrl(urlId: number): Promise<string[]> {
-    const result = await this.pool.query(
+  private async getTagsForUrlWithClient(
+    client: QueryClient,
+    urlId: number
+  ): Promise<string[]> {
+    const result = await client.query(
       "SELECT tag_name FROM url_tags WHERE url_id = $1 ORDER BY tag_name",
       [urlId]
     )
     return result.rows.map((r: { tag_name: string }) => r.tag_name)
   }
 
-  /** Reconciles a URL's tags to exactly match `tags` (adds new, removes missing) */
-  private async syncTags(urlId: number, tags: string[]): Promise<void> {
-    const current = new Set(await this.getTagsForUrl(urlId))
-    const next = new Set(tags.map((t) => t.trim()).filter(Boolean))
-
-    for (const tag of next) {
-      if (!current.has(tag)) await this.addTag(urlId, tag)
-    }
-    for (const tag of current) {
-      if (!next.has(tag)) await this.removeTag(urlId, tag)
-    }
-  }
-
-  private async attachTags(row: Record<string, unknown>): Promise<UrlRecord> {
-    const tags = await this.getTagsForUrl(row.id as number)
+  private async attachTags(
+    client: QueryClient,
+    row: Record<string, unknown>
+  ): Promise<UrlRecord> {
+    const tags = await this.getTagsForUrlWithClient(client, row.id as number)
     return URLRecord.parse({ ...row, tags })
   }
 
