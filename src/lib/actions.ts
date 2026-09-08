@@ -23,7 +23,8 @@ export async function createUrl(
     try {
       await urlService.createShortUrl(
         submission.value.url,
-        submission.value.shortCode
+        submission.value.shortCode,
+        submission.value.tags
       )
       result.error = null
     } catch (error) {
@@ -51,7 +52,8 @@ export async function editUrl(
     try {
       await urlService.updateUrl(
         submission.value.shortCode,
-        submission.value.url
+        submission.value.url,
+        submission.value.tags
       )
       result.error = null
     } catch (error) {
