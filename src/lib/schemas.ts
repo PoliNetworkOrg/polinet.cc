@@ -9,11 +9,30 @@ export const URLRecord = z.object({
   created_at: z.coerce.date(),
   updated_at: z.coerce.date(),
   click_count: z.number().int().nonnegative(),
+  last_clicked_at: z.coerce.date().nullable().optional().default(null),
+  aliases: z.array(z.string()).optional().default([]),
 })
 export const URLRecords = z.array(URLRecord)
 
 export type UrlRecord = z.infer<typeof URLRecord>
 export type UrlRecords = z.infer<typeof URLRecords>
+
+export const AliasRecord = z.object({
+  id: z.coerce.number(),
+  url_id: z.coerce.number(),
+  alias_code: z.string().max(25),
+  click_count: z.number().int().nonnegative(),
+  last_clicked_at: z.coerce.date().nullable(),
+  created_at: z.coerce.date(),
+})
+export type AliasRecord = z.infer<typeof AliasRecord>
+
+export const AliasStatsResult = z.object({
+  urlClickCount: z.number().int().nonnegative(),
+  urlLastClickedAt: z.coerce.date().nullable(),
+  aliases: z.array(AliasRecord),
+})
+export type AliasStatsResult = z.infer<typeof AliasStatsResult>
 
 export const PaginatedUrlsResponse = z.object({
   urls: z.array(URLRecord),

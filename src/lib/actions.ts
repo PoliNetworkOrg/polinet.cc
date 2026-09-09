@@ -2,6 +2,7 @@
 
 import type { SubmissionResult } from "@conform-to/react"
 import { parseWithZod } from "@conform-to/zod"
+import type { AliasStatsResult, UrlRecord } from "./schemas"
 import { urlService } from "./url-service"
 import { createUrlSchema, editUrlSchema } from "./validations"
 
@@ -24,6 +25,7 @@ export async function createUrl(
       await urlService.createShortUrl(
         submission.value.url,
         submission.value.shortCode,
+        submission.value.aliases,
         submission.value.tags
       )
       result.error = null
@@ -50,11 +52,12 @@ export async function editUrl(
 
   if (submission.status === "success") {
     try {
-      await urlService.updateUrl(
-        submission.value.shortCode,
-        submission.value.url,
-        submission.value.tags
-      )
+      const { currentShortCode, shortCode, url, aliases, tags } =
+        submission.value
+      if (shortCode !== currentShortCode) {
+        await urlService.renameShortCode(currentShortCode, shortCode)
+      }
+      await urlService.updateUrl(shortCode, url, aliases, tags)
       result.error = null
     } catch (error) {
       result.error =
@@ -62,4 +65,31 @@ export async function editUrl(
     }
   }
   return result
+}
+
+export async function getAliasStats(
+  shortCode: string
+): Promise<AliasStatsResult | null> {
+  return urlService.getAliasStats(shortCode)
+}
+
+export async function addAliasAction(
+  urlId: number,
+  aliasCode: string
+): Promise<void> {
+  await urlService.addAlias(urlId, aliasCode)
+}
+
+export async function removeAliasAction(
+  urlId: number,
+  aliasCode: string
+): Promise<void> {
+  await urlService.removeAlias(urlId, aliasCode)
+}
+
+export async function promoteAliasAction(
+  urlId: number,
+  aliasCode: string
+): Promise<UrlRecord | null> {
+  return urlService.promoteAlias(urlId, aliasCode)
 }

@@ -1,7 +1,12 @@
 import { initContract } from "@ts-rest/core"
 import z from "zod"
-import { GetUrlsQueryParams, PaginatedUrlsResponse, URLRecord } from "./schemas"
-import { createUrlSchema, tagSchema } from "./validations"
+import {
+  AliasStatsResult,
+  GetUrlsQueryParams,
+  PaginatedUrlsResponse,
+  URLRecord,
+} from "./schemas"
+import { aliasSchema, createUrlSchema, tagSchema } from "./validations"
 
 const c = initContract()
 
@@ -55,6 +60,45 @@ export const contract = c.router({
       404: APIError,
     },
     summary: "Delete a short URL",
+  },
+  addAlias: {
+    method: "POST",
+    path: "/urls/:shortCode/aliases",
+    body: aliasSchema,
+    responses: {
+      201: z.void(),
+      400: APIError,
+      404: APIError,
+    },
+    summary: "Add an alias to a short URL",
+  },
+  removeAlias: {
+    method: "DELETE",
+    path: "/urls/:shortCode/aliases/:aliasCode",
+    responses: {
+      204: z.void(),
+      404: APIError,
+    },
+    summary: "Remove an alias from a short URL",
+  },
+  promoteAlias: {
+    method: "POST",
+    path: "/urls/:shortCode/aliases/:aliasCode/promote",
+    body: z.object({}),
+    responses: {
+      200: URLRecord,
+      404: APIError,
+    },
+    summary: "Promote an alias to be the primary short code",
+  },
+  getAliasStats: {
+    method: "GET",
+    path: "/urls/:shortCode/alias-stats",
+    responses: {
+      200: AliasStatsResult,
+      404: APIError,
+    },
+    summary: "Get per-route click stats for a URL's primary code and aliases",
   },
   getAllTags: {
     method: "GET",

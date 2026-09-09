@@ -56,6 +56,30 @@ async function initDatabase() {
   }
 }
 
+async function migrateDatabase() {
+  const pool = getPool()
+
+  try {
+    await pool.query(`
+      ALTER TABLE urls ADD COLUMN IF NOT EXISTS last_clicked_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+
+      CREATE TABLE IF NOT EXISTS url_aliases (
+        id SERIAL PRIMARY KEY,
+        url_id INTEGER NOT NULL REFERENCES urls(id) ON DELETE CASCADE,
+        alias_code VARCHAR(25) UNIQUE NOT NULL,
+        click_count INTEGER NOT NULL DEFAULT 0,
+        last_clicked_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_alias_code ON url_aliases(alias_code);
+      CREATE INDEX IF NOT EXISTS idx_alias_url_id ON url_aliases(url_id);
+    `)
+  } catch (error) {
+    console.error("Error running database migrations:", error)
+  }
+}
+
 let init = false
 // Skip initialization if env where not validated
 // this doesn't prevent DB calls to be made, but if the env is not validated
@@ -64,8 +88,9 @@ let init = false
 if (!init && !process.env.SKIP_ENV_VALIDATION) {
   init = true
   initDatabase()
+    .then(() => migrateDatabase())
     .then(() => {
-      console.log("Database initialized successfully")
+      console.log("Database initialized and migrated successfully")
     })
     .catch((error) => {
       console.error("Error during database initialization:", error)
