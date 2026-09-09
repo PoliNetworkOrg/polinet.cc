@@ -36,6 +36,13 @@ export const env = createEnv({
     // to trust the built-in edge headers (Cloudflare/Vercel). Country-level
     // only — never city/GPS.
     GEO_COUNTRY_HEADER: z.string().optional(),
+    // Optional override for the request header a trusted proxy/CDN uses to
+    // expose the visitor's real IP (e.g. "cf-connecting-ip"). When set it is
+    // used EXCLUSIVELY (no fallback to client-settable headers like
+    // X-Forwarded-For, which the visitor can spoof). Leave unset to trust the
+    // built-in edge headers (Cloudflare/Vercel). The IP is used transiently
+    // only, to derive the daily unique-visitor hash — never stored or logged.
+    TRUSTED_IP_HEADER: z.string().optional(),
   },
 
   runtimeEnv: {
@@ -51,6 +58,7 @@ export const env = createEnv({
     DB_URL: process.env.DB_URL,
     ANALYTICS_HASH_SECRET: process.env.ANALYTICS_HASH_SECRET,
     GEO_COUNTRY_HEADER: process.env.GEO_COUNTRY_HEADER,
+    TRUSTED_IP_HEADER: process.env.TRUSTED_IP_HEADER,
   },
 
   /**

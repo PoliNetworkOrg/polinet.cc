@@ -142,7 +142,12 @@ export class AnalyticsService {
 
       // First sighting of this visitor today → count a unique. We check-then-
       // insert inside the transaction; the unique constraint + ON CONFLICT DO
-      // NOTHING is the concurrency backstop.
+      // NOTHING is the concurrency backstop — it guarantees at most one dedup
+      // row per visitor/day/link regardless of races, so the worst case under
+      // concurrent clicks from the same visitor is an off-by-one on the
+      // *estimated* unique count for that instant, never a duplicate row or a
+      // count that drifts over time. This is an aggregate estimate, not an
+      // exact figure (see the analytics dialog's "estimate" labeling).
       const existing = await client.query(
         `SELECT 1 FROM daily_unique_click_dedup
          WHERE url_id = $1 AND bucket_date = $2 AND daily_visitor_hash = $3

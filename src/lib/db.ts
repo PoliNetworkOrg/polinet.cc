@@ -65,6 +65,7 @@ async function migrateDatabase() {
     await pool.query(ANALYTICS_SCHEMA_SQL)
   } catch (error) {
     console.error("Error running database migrations:", error)
+    throw error
   }
 }
 

@@ -1,6 +1,7 @@
 import { headers } from "next/headers"
 import { notFound, RedirectType, redirect } from "next/navigation"
 import { after } from "next/server"
+import { env } from "@/env"
 import { analyticsService } from "@/lib/analytics-service"
 import { getCountryFromHeaders } from "@/lib/geo"
 import { urlService } from "@/lib/url-service"
@@ -11,11 +12,26 @@ interface Props {
   }>
 }
 
-/** First hop of X-Forwarded-For, else X-Real-IP. Used transiently only. */
+// IP headers written by the trusted edge/CDN in front of the app, which
+// overwrite any client-supplied copy — unlike generic `X-Forwarded-For`/
+// `X-Real-IP`, which a visitor can set arbitrarily on a direct request. If you
+// run behind a different trusted proxy, name its header via TRUSTED_IP_HEADER.
+const TRUSTED_EDGE_IP_HEADERS = [
+  "cf-connecting-ip", // Cloudflare
+  "x-vercel-forwarded-for", // Vercel
+]
+
+/** Real client IP from a trusted edge header only. Used transiently only. */
 function extractIp(h: Headers): string {
-  const fwd = h.get("x-forwarded-for")
-  if (fwd) return fwd.split(",")[0]?.trim() ?? ""
-  return h.get("x-real-ip")?.trim() ?? ""
+  const candidates = env.TRUSTED_IP_HEADER
+    ? [env.TRUSTED_IP_HEADER]
+    : TRUSTED_EDGE_IP_HEADERS
+
+  for (const name of candidates) {
+    const value = h.get(name)?.trim()
+    if (value) return value
+  }
+  return ""
 }
 
 export default async function RedirectPage({ params }: Props) {
