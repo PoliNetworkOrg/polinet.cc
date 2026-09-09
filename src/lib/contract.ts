@@ -6,7 +6,7 @@ import {
   PaginatedUrlsResponse,
   URLRecord,
 } from "./schemas"
-import { aliasSchema, createUrlSchema } from "./validations"
+import { aliasSchema, createUrlSchema, tagSchema } from "./validations"
 
 const c = initContract()
 
@@ -99,5 +99,32 @@ export const contract = c.router({
       404: APIError,
     },
     summary: "Get per-route click stats for a URL's primary code and aliases",
+  },
+  getAllTags: {
+    method: "GET",
+    path: "/tags",
+    responses: {
+      200: z.array(z.string()),
+    },
+    summary: "Get all distinct tags in use",
+  },
+  addTag: {
+    method: "POST",
+    path: "/urls/:shortCode/tags",
+    body: tagSchema,
+    responses: {
+      201: z.void(),
+      404: APIError,
+    },
+    summary: "Add a tag to a URL",
+  },
+  removeTag: {
+    method: "DELETE",
+    path: "/urls/:shortCode/tags/:tagName",
+    responses: {
+      204: z.void(),
+      404: APIError,
+    },
+    summary: "Remove a tag from a URL",
   },
 })

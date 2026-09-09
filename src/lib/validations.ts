@@ -9,10 +9,13 @@ export const shortCodeValidator = z
     "Short code can only contain letters, numbers, hyphens and underscores"
   )
 
+const tagValidator = z.string().trim().min(1).max(50)
+
 export const createUrlSchema = z.object({
   url: z.string().url("Invalid URL format"),
   shortCode: shortCodeValidator.optional(),
   aliases: z.array(shortCodeValidator).default([]),
+  tags: z.array(tagValidator).default([]),
 })
 
 export type CreateUrlInput = z.infer<typeof createUrlSchema>
@@ -26,4 +29,8 @@ export const editUrlSchema = createUrlSchema.extend({
 
 export const aliasSchema = z.object({
   aliasCode: shortCodeValidator,
+})
+
+export const tagSchema = z.object({
+  tagName: tagValidator,
 })

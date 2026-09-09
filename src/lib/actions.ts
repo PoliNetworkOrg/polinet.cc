@@ -25,7 +25,8 @@ export async function createUrl(
       await urlService.createShortUrl(
         submission.value.url,
         submission.value.shortCode,
-        submission.value.aliases
+        submission.value.aliases,
+        submission.value.tags
       )
       result.error = null
     } catch (error) {
@@ -51,11 +52,12 @@ export async function editUrl(
 
   if (submission.status === "success") {
     try {
-      const { currentShortCode, shortCode, url, aliases } = submission.value
+      const { currentShortCode, shortCode, url, aliases, tags } =
+        submission.value
       if (shortCode !== currentShortCode) {
         await urlService.renameShortCode(currentShortCode, shortCode)
       }
-      await urlService.updateUrl(shortCode, url, aliases)
+      await urlService.updateUrl(shortCode, url, aliases, tags)
       result.error = null
     } catch (error) {
       result.error =

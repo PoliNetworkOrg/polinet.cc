@@ -1,4 +1,5 @@
 import { nanoid } from "nanoid"
+import type { PoolClient } from "pg"
 import { getPool } from "./db"
 import {
   type AliasRecord,
@@ -10,50 +11,63 @@ import {
   type UrlRecord,
 } from "./schemas"
 
+type QueryClient = Pick<PoolClient, "query">
+
 export class UrlService {
   private pool = getPool()
 
   async createShortUrl(
     originalUrl: string,
     customShortCode?: string,
-    aliases?: string[]
+    aliases?: string[],
+    tags?: string[]
   ): Promise<UrlRecord> {
-    let shortCode: string
-    let isCustom = true
+    const client = await this.pool.connect()
 
-    if (customShortCode) {
-      // Check if custom short code already exists
-      const existingUrl = await this.getUrlByShortCode(customShortCode)
-      if (existingUrl) {
-        throw new Error(
-          "Short code already exists. Please choose a different one."
+    try {
+      await client.query("BEGIN")
+
+      let shortCode: string
+      let isCustom = true
+
+      if (customShortCode) {
+        const existingUrl = await client.query(
+          "SELECT 1 FROM urls WHERE short_code = $1",
+          [customShortCode]
         )
+        if (existingUrl.rows[0]) {
+          throw new Error(
+            "Short code already exists. Please choose a different one."
+          )
+        }
+        shortCode = customShortCode
+      } else {
+        shortCode = nanoid(8)
+        isCustom = false
       }
-      shortCode = customShortCode
-    } else {
-      // Generate a unique short code
-      shortCode = nanoid(8)
-      isCustom = false
+
+      const result = await client.query(
+        `
+          INSERT INTO urls (original_url, short_code, is_custom)
+          VALUES ($1, $2, $3)
+          RETURNING *
+        `,
+        [originalUrl, shortCode, isCustom]
+      )
+      const urlRecord = result.rows[0]
+
+      await this.syncAliases(client, urlRecord.id, aliases ?? [])
+      await this.syncTags(client, urlRecord.id, tags ?? [])
+      const fullRecord = await this.attachAll(client, urlRecord)
+
+      await client.query("COMMIT")
+      return fullRecord
+    } catch (error) {
+      await client.query("ROLLBACK")
+      throw error
+    } finally {
+      client.release()
     }
-
-    const query = `
-      INSERT INTO urls (original_url, short_code, is_custom)
-      VALUES ($1, $2, $3)
-      RETURNING *
-    `
-
-    const result = await this.pool.query(query, [
-      originalUrl,
-      shortCode,
-      isCustom,
-    ])
-    const urlRecord = result.rows[0]
-
-    for (const alias of aliases ?? []) {
-      await this.addAlias(urlRecord.id, alias)
-    }
-
-    return this.attachAliases(urlRecord)
   }
 
   /** Looks up a URL by its primary short_code OR an alias code */
@@ -66,7 +80,7 @@ export class UrlService {
       [shortCode]
     )
     if (!result.rows[0]) return null
-    return this.attachAliases(result.rows[0])
+    return this.attachAll(this.pool, result.rows[0])
   }
 
   /** Resolve a code (primary or alias) to the destination for a redirect. */
@@ -95,6 +109,7 @@ export class UrlService {
       sortBy = "created_at",
       customOnly = false,
       sortOrder = "desc",
+      tag,
     } = options
 
     const sb = [
@@ -107,31 +122,45 @@ export class UrlService {
       : "created_at"
 
     const offset = (page - 1) * limit
-    const queryParams = [!search, `%${search}%`, !customOnly, limit, offset]
+    // $1 = no-search flag, $2 = search pattern,
+    // $3 = no-customOnly flag, $4 = tag filter (null = all), $5 = limit, $6 = offset
+    const queryParams = [
+      !search,
+      `%${search}%`,
+      !customOnly,
+      tag ?? null,
+      limit,
+      offset,
+    ]
+
+    // Filtering by tag uses a plain LEFT JOIN restricted to the requested tag
+    // name (not a correlated subquery), since (url_id, tag_name) is unique so
+    // it can't multiply rows.
+    const fromAndWhere = `
+      FROM urls u
+      LEFT JOIN url_tags mt ON mt.url_id = u.id AND mt.tag_name = $4
+      WHERE ($1 OR (u.original_url ILIKE $2 OR u.short_code ILIKE $2))
+        AND ($3 OR u.is_custom = TRUE)
+        AND ($4::text IS NULL OR mt.tag_name IS NOT NULL)
+    `
 
     const [dataResult, totals] = await Promise.all([
       this.pool.query(
         `
-          SELECT * FROM urls
-          WHERE ($1 OR (original_url ILIKE $2 OR short_code ILIKE $2)) AND ($3 OR is_custom = TRUE)
+          SELECT u.* ${fromAndWhere}
           ORDER BY ${sb} ${sortOrder === "asc" ? "ASC" : "DESC"}
-          LIMIT $4 OFFSET $5
+          LIMIT $5 OFFSET $6
         `,
         queryParams
       ),
       this.pool.query(
-        `
-          SELECT COUNT(*) FROM urls
-          WHERE ($1 OR (original_url ILIKE $2 OR short_code ILIKE $2)) AND ($3 OR is_custom = TRUE)
-        `,
-        queryParams.slice(0, 3)
+        `SELECT COUNT(*) ${fromAndWhere}`,
+        queryParams.slice(0, 4)
       ),
     ])
 
     const total = parseInt(totals.rows[0].count, 10)
-    const urls = URLRecords.parse(
-      await this.attachAliasesToMany(dataResult.rows)
-    )
+    const urls = URLRecords.parse(await this.attachAllToMany(dataResult.rows))
 
     return {
       urls,
@@ -144,25 +173,49 @@ export class UrlService {
     }
   }
 
-  /** Updates the destination URL and reconciles aliases to exactly `aliases` */
+  /** Updates the destination URL and reconciles aliases/tags to exactly match */
   async updateUrl(
     shortCode: string,
     originalUrl: string,
-    aliases: string[] = []
+    aliases: string[] = [],
+    tags: string[] = []
   ): Promise<UrlRecord | null> {
-    const query = `
-      UPDATE urls
-      SET original_url = $1, updated_at = CURRENT_TIMESTAMP
-      WHERE short_code = $2
-      RETURNING *
-    `
+    const client = await this.pool.connect()
 
-    const result = await this.pool.query(query, [originalUrl, shortCode])
-    if (!result.rows[0]) return null
+    try {
+      await client.query("BEGIN")
 
-    await this.syncAliases(result.rows[0].id, aliases)
+      const lockedUrl = await client.query(
+        "SELECT id FROM urls WHERE short_code = $1 FOR UPDATE",
+        [shortCode]
+      )
+      if (!lockedUrl.rows[0]) {
+        await client.query("COMMIT")
+        return null
+      }
 
-    return this.attachAliases(result.rows[0])
+      const result = await client.query(
+        `
+          UPDATE urls
+          SET original_url = $1, updated_at = CURRENT_TIMESTAMP
+          WHERE id = $2
+          RETURNING *
+        `,
+        [originalUrl, lockedUrl.rows[0].id]
+      )
+
+      await this.syncAliases(client, result.rows[0].id, aliases)
+      await this.syncTags(client, result.rows[0].id, tags)
+      const fullRecord = await this.attachAll(client, result.rows[0])
+
+      await client.query("COMMIT")
+      return fullRecord
+    } catch (error) {
+      await client.query("ROLLBACK")
+      throw error
+    } finally {
+      client.release()
+    }
   }
 
   /** Renames the primary short code, rejecting collisions with any other code. */
@@ -193,7 +246,7 @@ export class UrlService {
        WHERE short_code = $2 RETURNING *`,
       [newCode, oldCode]
     )
-    return this.attachAliases(result.rows[0])
+    return this.attachAll(this.pool, result.rows[0])
   }
 
   async deleteUrl(shortCode: string): Promise<boolean> {
@@ -232,32 +285,15 @@ export class UrlService {
   // ── Alias methods ──────────────────────────────────────────────────────────
 
   async addAlias(urlId: number, aliasCode: string): Promise<void> {
-    const existing = await this.getUrlByShortCode(aliasCode)
-    if (existing) {
-      throw new Error(
-        `"${aliasCode}" is already in use as a short code or alias.`
-      )
-    }
-    await this.pool.query(
-      "INSERT INTO url_aliases (url_id, alias_code) VALUES ($1, $2)",
-      [urlId, aliasCode]
-    )
+    await this.addAliasWithClient(this.pool, urlId, aliasCode)
   }
 
   async removeAlias(urlId: number, aliasCode: string): Promise<boolean> {
-    const result = await this.pool.query(
-      "DELETE FROM url_aliases WHERE url_id = $1 AND alias_code = $2",
-      [urlId, aliasCode]
-    )
-    return (result.rowCount ?? 0) > 0
+    return this.removeAliasWithClient(this.pool, urlId, aliasCode)
   }
 
   async getAliasesForUrl(urlId: number): Promise<string[]> {
-    const result = await this.pool.query(
-      "SELECT alias_code FROM url_aliases WHERE url_id = $1 ORDER BY created_at",
-      [urlId]
-    )
-    return result.rows.map((r: { alias_code: string }) => r.alias_code)
+    return this.getAliasesForUrlWithClient(this.pool, urlId)
   }
 
   /**
@@ -353,23 +389,72 @@ export class UrlService {
   }
 
   /** Reconciles a URL's aliases to exactly match `aliases` (adds new, removes missing) */
-  private async syncAliases(urlId: number, aliases: string[]): Promise<void> {
-    const current = new Set(await this.getAliasesForUrl(urlId))
+  private async syncAliases(
+    client: QueryClient,
+    urlId: number,
+    aliases: string[]
+  ): Promise<void> {
+    const current = new Set(
+      await this.getAliasesForUrlWithClient(client, urlId)
+    )
     const next = new Set(aliases.map((a) => a.trim()).filter(Boolean))
 
     for (const alias of next) {
-      if (!current.has(alias)) await this.addAlias(urlId, alias)
+      if (!current.has(alias)) {
+        await this.addAliasWithClient(client, urlId, alias)
+      }
     }
     for (const alias of current) {
-      if (!next.has(alias)) await this.removeAlias(urlId, alias)
+      if (!next.has(alias)) {
+        await this.removeAliasWithClient(client, urlId, alias)
+      }
     }
   }
 
-  private async attachAliases(
-    row: Record<string, unknown>
-  ): Promise<UrlRecord> {
-    const aliases = await this.getAliasesForUrl(row.id as number)
-    return URLRecord.parse({ ...row, aliases })
+  private async addAliasWithClient(
+    client: QueryClient,
+    urlId: number,
+    aliasCode: string
+  ): Promise<void> {
+    const existing = await client.query(
+      `SELECT 1 FROM urls WHERE short_code = $1
+       UNION
+       SELECT 1 FROM url_aliases WHERE alias_code = $1
+       LIMIT 1`,
+      [aliasCode]
+    )
+    if (existing.rows[0]) {
+      throw new Error(
+        `"${aliasCode}" is already in use as a short code or alias.`
+      )
+    }
+    await client.query(
+      "INSERT INTO url_aliases (url_id, alias_code) VALUES ($1, $2)",
+      [urlId, aliasCode]
+    )
+  }
+
+  private async removeAliasWithClient(
+    client: QueryClient,
+    urlId: number,
+    aliasCode: string
+  ): Promise<boolean> {
+    const result = await client.query(
+      "DELETE FROM url_aliases WHERE url_id = $1 AND alias_code = $2",
+      [urlId, aliasCode]
+    )
+    return (result.rowCount ?? 0) > 0
+  }
+
+  private async getAliasesForUrlWithClient(
+    client: QueryClient,
+    urlId: number
+  ): Promise<string[]> {
+    const result = await client.query(
+      "SELECT alias_code FROM url_aliases WHERE url_id = $1 ORDER BY created_at",
+      [urlId]
+    )
+    return result.rows.map((r: { alias_code: string }) => r.alias_code)
   }
 
   /** Batch-fetches aliases for many rows in one query instead of one-per-row */
@@ -397,6 +482,125 @@ export class UrlService {
       ...row,
       aliases: aliasesByUrlId.get(row.id as number) ?? [],
     }))
+  }
+
+  /** Returns all distinct tag names in use, sorted */
+  async getAllTags(): Promise<string[]> {
+    const result = await this.pool.query(
+      "SELECT DISTINCT tag_name FROM url_tags ORDER BY tag_name"
+    )
+    return result.rows.map((r: { tag_name: string }) => r.tag_name)
+  }
+
+  async addTag(urlId: number, tagName: string): Promise<void> {
+    await this.addTagWithClient(this.pool, urlId, tagName)
+  }
+
+  async removeTag(urlId: number, tagName: string): Promise<boolean> {
+    return this.removeTagWithClient(this.pool, urlId, tagName)
+  }
+
+  async getTagsForUrl(urlId: number): Promise<string[]> {
+    return this.getTagsForUrlWithClient(this.pool, urlId)
+  }
+
+  /** Reconciles a URL's tags to exactly match `tags` (adds new, removes missing) */
+  private async syncTags(
+    client: PoolClient,
+    urlId: number,
+    tags: string[]
+  ): Promise<void> {
+    const current = new Set(await this.getTagsForUrlWithClient(client, urlId))
+    const next = new Set(tags.map((t) => t.trim()).filter(Boolean))
+
+    for (const tag of next) {
+      if (!current.has(tag)) await this.addTagWithClient(client, urlId, tag)
+    }
+    for (const tag of current) {
+      if (!next.has(tag)) await this.removeTagWithClient(client, urlId, tag)
+    }
+  }
+
+  private async addTagWithClient(
+    client: QueryClient,
+    urlId: number,
+    tagName: string
+  ): Promise<void> {
+    await client.query(
+      "INSERT INTO url_tags (url_id, tag_name) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+      [urlId, tagName.trim()]
+    )
+  }
+
+  private async removeTagWithClient(
+    client: QueryClient,
+    urlId: number,
+    tagName: string
+  ): Promise<boolean> {
+    const result = await client.query(
+      "DELETE FROM url_tags WHERE url_id = $1 AND tag_name = $2",
+      [urlId, tagName]
+    )
+    return (result.rowCount ?? 0) > 0
+  }
+
+  private async getTagsForUrlWithClient(
+    client: QueryClient,
+    urlId: number
+  ): Promise<string[]> {
+    const result = await client.query(
+      "SELECT tag_name FROM url_tags WHERE url_id = $1 ORDER BY tag_name",
+      [urlId]
+    )
+    return result.rows.map((r: { tag_name: string }) => r.tag_name)
+  }
+
+  /** Batch-fetches tags for many rows in one query instead of one-per-row */
+  private async attachTagsToMany(
+    rows: Record<string, unknown>[]
+  ): Promise<Record<string, unknown>[]> {
+    if (rows.length === 0) return rows
+
+    const ids = rows.map((r) => r.id as number)
+    const result = await this.pool.query(
+      "SELECT url_id, tag_name FROM url_tags WHERE url_id = ANY($1::int[]) ORDER BY tag_name",
+      [ids]
+    )
+    const tagsByUrlId = new Map<number, string[]>()
+    for (const { url_id, tag_name } of result.rows as {
+      url_id: number
+      tag_name: string
+    }[]) {
+      const list = tagsByUrlId.get(url_id) ?? []
+      list.push(tag_name)
+      tagsByUrlId.set(url_id, list)
+    }
+
+    return rows.map((row) => ({
+      ...row,
+      tags: tagsByUrlId.get(row.id as number) ?? [],
+    }))
+  }
+
+  /** Attaches both aliases and tags to a single row within a transaction/connection */
+  private async attachAll(
+    client: QueryClient,
+    row: Record<string, unknown>
+  ): Promise<UrlRecord> {
+    const [aliases, tags] = await Promise.all([
+      this.getAliasesForUrlWithClient(client, row.id as number),
+      this.getTagsForUrlWithClient(client, row.id as number),
+    ])
+    return URLRecord.parse({ ...row, aliases, tags })
+  }
+
+  /** Attaches both aliases and tags to many rows, batching each */
+  private async attachAllToMany(
+    rows: Record<string, unknown>[]
+  ): Promise<Record<string, unknown>[]> {
+    if (rows.length === 0) return rows
+    const withAliases = await this.attachAliasesToMany(rows)
+    return this.attachTagsToMany(withAliases)
   }
 }
 

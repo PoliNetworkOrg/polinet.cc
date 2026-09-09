@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { editUrl } from "@/lib/actions"
 import type { UrlRecord } from "@/lib/schemas"
-import { makeShortUrl } from "@/lib/utils"
+import { getTagColor, makeShortUrl } from "@/lib/utils"
 import { editUrlSchema } from "@/lib/validations"
 import { Badge } from "./ui/badge"
 
@@ -52,6 +52,10 @@ function EditUrlForm({
   const [aliases, setAliases] = useState<string[]>(url.aliases)
   const [aliasInput, setAliasInput] = useState("")
   const [aliasError, setAliasError] = useState<string | null>(null)
+
+  const [tags, setTags] = useState<string[]>(url.tags ?? [])
+  const [tagInput, setTagInput] = useState("")
+  const [tagError, setTagError] = useState<string | null>(null)
 
   const [form, fields] = useForm({
     lastResult,
@@ -93,6 +97,24 @@ function EditUrlForm({
   const removeAlias = (alias: string) =>
     setAliases((prev) => prev.filter((a) => a !== alias))
 
+  const addTag = () => {
+    const trimmed = tagInput.trim().replace(/,+$/, "")
+    if (!trimmed) return
+    if (trimmed.length > 50) {
+      setTagError("Tag must be at most 50 characters")
+      return
+    }
+    if (tags.includes(trimmed)) {
+      setTagError("Tag already added")
+      return
+    }
+    setTags((prev) => [...prev, trimmed])
+    setTagInput("")
+    setTagError(null)
+  }
+  const removeTag = (tag: string) =>
+    setTags((prev) => prev.filter((t) => t !== tag))
+
   return (
     <form {...getFormProps(form, {})} action={action}>
       <input type="hidden" name="currentShortCode" value={url.short_code} />
@@ -129,7 +151,7 @@ function EditUrlForm({
             className="col-span-3"
           />
         </div>
-        <div className="grid grid-cols-4 col-span-4 items-start gap-4">
+        <div className="grid grid-cols-4 col-span-4 items-start gap-4 mb-4">
           <Label className="text-right pt-2">Aliases</Label>
           <div className="col-span-3 space-y-2">
             <div className="flex gap-2">
@@ -183,6 +205,69 @@ function EditUrlForm({
               name={`aliases[${i}]`}
               value={alias}
             />
+          ))}
+        </div>
+        <div className="grid grid-cols-4 col-span-4 items-start gap-4">
+          <Label className="text-right pt-2">Tags</Label>
+          <div className="col-span-3 space-y-2">
+            <div className="flex gap-2">
+              <Input
+                value={tagInput}
+                onChange={(e) => {
+                  setTagInput(e.target.value)
+                  setTagError(null)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === ",") {
+                    e.preventDefault()
+                    addTag()
+                  }
+                }}
+                placeholder="e.g. events, forms…"
+                className="flex-1"
+                maxLength={51}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addTag}
+              >
+                Add
+              </Button>
+            </div>
+            {tagError && <p className="text-xs text-red-600">{tagError}</p>}
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {tags.map((tag) => {
+                  const c = getTagColor(tag)
+                  return (
+                    <span
+                      key={tag}
+                      style={{
+                        backgroundColor: c.bg,
+                        color: c.text,
+                        border: `1px solid ${c.border}`,
+                      }}
+                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
+                    >
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => removeTag(tag)}
+                        className="hover:opacity-70"
+                        aria-label={`Remove tag ${tag}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+          {tags.map((tag, i) => (
+            <input key={tag} type="hidden" name={`tags[${i}]`} value={tag} />
           ))}
         </div>
       </div>
