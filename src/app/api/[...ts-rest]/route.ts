@@ -14,6 +14,7 @@ const handler = createNextHandler(
         sortBy: query.sortBy,
         sortOrder: query.sortOrder,
         customOnly: query.customOnly,
+        tag: query.tag,
       })
       return {
         status: 200,
@@ -24,7 +25,8 @@ const handler = createNextHandler(
       try {
         const urlRecord = await urlService.createShortUrl(
           body.url,
-          body.shortCode
+          body.shortCode,
+          body.tags
         )
         return {
           status: 201,
@@ -54,7 +56,11 @@ const handler = createNextHandler(
       }
     },
     updateUrl: async ({ params, body }) => {
-      const urlRecord = await urlService.updateUrl(params.shortCode, body.url)
+      const urlRecord = await urlService.updateUrl(
+        params.shortCode,
+        body.url,
+        body.tags
+      )
       if (!urlRecord) {
         return {
           status: 404,
@@ -90,6 +96,44 @@ const handler = createNextHandler(
       return {
         status: 200,
         body: analytics,
+      }
+    },
+    getAllTags: async () => {
+      const tags = await urlService.getAllTags()
+      return {
+        status: 200,
+        body: tags,
+      }
+    },
+    addTag: async ({ params, body }) => {
+      const urlRecord = await urlService.getUrlByShortCode(params.shortCode)
+      if (!urlRecord) {
+        return {
+          status: 404,
+          body: { error: "URL not found" },
+        }
+      }
+      await urlService.addTag(urlRecord.id, body.tagName)
+      return {
+        status: 201,
+        body: undefined,
+      }
+    },
+    removeTag: async ({ params }) => {
+      const urlRecord = await urlService.getUrlByShortCode(params.shortCode)
+      if (!urlRecord) {
+        return {
+          status: 404,
+          body: { error: "URL not found" },
+        }
+      }
+      await urlService.removeTag(
+        urlRecord.id,
+        decodeURIComponent(params.tagName)
+      )
+      return {
+        status: 204,
+        body: undefined,
       }
     },
   },
