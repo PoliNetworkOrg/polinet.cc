@@ -3,7 +3,7 @@
 import { getFormProps, getInputProps, useForm } from "@conform-to/react"
 import { getZodConstraint, parseWithZod } from "@conform-to/zod"
 import { X } from "lucide-react"
-import { useActionState, useState } from "react"
+import { useActionState, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import {
@@ -66,18 +66,28 @@ function EditUrlForm({
     },
     onValidate: ({ formData }) =>
       parseWithZod(formData, { schema: editUrlSchema }),
-    onSubmit: () => {
-      if (error) {
-        console.error("Error editing URL:", error)
-        toast.error(`Error editing URL: ${error}`)
-      } else {
-        toast.success("Short URL edited successfully!")
-      }
-      onSuccess()
-    },
     shouldValidate: "onBlur",
     shouldRevalidate: "onInput",
   })
+
+  const onSuccessRef = useRef(onSuccess)
+  useEffect(() => {
+    onSuccessRef.current = onSuccess
+  })
+
+  // `lastResult`/`error` only reflect the outcome of a submission once the
+  // server action has actually resolved — reacting to them here (rather than
+  // in the form's `onSubmit`, which fires before that) avoids reporting
+  // success and closing the dialog before we know whether the edit failed.
+  useEffect(() => {
+    if (lastResult && form.status === "success") {
+      toast.success("Short URL edited successfully!")
+      onSuccessRef.current()
+    } else if (lastResult && error) {
+      console.error("Error editing URL:", error)
+      toast.error(`Error editing URL: ${error}`)
+    }
+  }, [lastResult, error, form.status])
 
   const addAlias = () => {
     const trimmed = aliasInput.trim()
