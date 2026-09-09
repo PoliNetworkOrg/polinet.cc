@@ -1,0 +1,30 @@
+name: Purge analytics dedup
+
+# Guarantees the daily-unique-click dedup retention window (~24-48h)
+# independently of traffic — see src/app/api/cron/purge-analytics-dedup.
+# Requires the deployment's URL and (if CRON_SECRET is set) matching secret
+# to be configured as repo variables/secrets before this can run:
+#   - vars.SITE_URL      e.g. https://polinet.cc
+#   - secrets.CRON_SECRET  same value as the CRON_SECRET env var on the
+#                           deployment, if one is configured there
+on:
+  schedule:
+    - cron: "17 3 * * *" # once a day, off the hour to avoid thundering herds
+  workflow_dispatch: {}
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call purge endpoint
+        run: |
+          if [ -z "${SITE_URL}" ]; then
+            echo "vars.SITE_URL is not configured; skipping." >&2
+            exit 1
+          fi
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${SITE_URL}/api/cron/purge-analytics-dedup"
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
