@@ -43,6 +43,13 @@ export const env = createEnv({
     // built-in edge headers (Cloudflare/Vercel). The IP is used transiently
     // only, to derive the daily unique-visitor hash — never stored or logged.
     TRUSTED_IP_HEADER: z.string().optional(),
+    // Bearer token required by GET /api/cron/purge-analytics-dedup, which
+    // deletes expired unique-click dedup rows. Recorded clicks purge
+    // opportunistically too, but that alone never guarantees the retention
+    // window for a link that stops receiving traffic — this endpoint, called
+    // on a schedule (see .github/workflows/purge-analytics-dedup.yml), is
+    // what actually guarantees it regardless of traffic.
+    CRON_SECRET: z.string().min(16).optional(),
   },
 
   runtimeEnv: {
@@ -59,6 +66,7 @@ export const env = createEnv({
     ANALYTICS_HASH_SECRET: process.env.ANALYTICS_HASH_SECRET,
     GEO_COUNTRY_HEADER: process.env.GEO_COUNTRY_HEADER,
     TRUSTED_IP_HEADER: process.env.TRUSTED_IP_HEADER,
+    CRON_SECRET: process.env.CRON_SECRET,
   },
 
   /**

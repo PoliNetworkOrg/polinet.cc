@@ -168,6 +168,35 @@ describe("AnalyticsService", () => {
     expect(analytics?.daily[0].clicks).toBe(2)
   })
 
+  it("counts concurrent same-visitor clicks as exactly one unique", async () => {
+    const { service, urlId } = await setup()
+
+    // Both requests race to record the same visitor at (effectively) the
+    // same instant. The dedup insert's unique constraint must let only one
+    // of them win the "first sighting" — a check-then-insert race would let
+    // both count a unique.
+    await Promise.all([
+      service.recordClick({
+        urlId,
+        ip: RAW_IP,
+        userAgent: RAW_UA,
+        country: "US",
+        at: D1,
+      }),
+      service.recordClick({
+        urlId,
+        ip: RAW_IP,
+        userAgent: RAW_UA,
+        country: "US",
+        at: D1,
+      }),
+    ])
+
+    const analytics = await service.getAnalytics("abc", D1)
+    expect(analytics?.totalClicks).toBe(2)
+    expect(analytics?.uniqueToday).toBe(1)
+  })
+
   it("counts the same visitor again as a new unique the next day", async () => {
     const { service, urlId } = await setup()
 

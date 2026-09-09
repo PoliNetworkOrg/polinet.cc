@@ -73,6 +73,16 @@ export function computeDailyVisitorHash(
     .digest("hex")
 }
 
+/** True for a Postgres unique-constraint violation (SQLSTATE 23505). */
+function isUniqueViolation(e: unknown): boolean {
+  return (
+    typeof e === "object" &&
+    e !== null &&
+    "code" in e &&
+    (e as { code?: unknown }).code === "23505"
+  )
+}
+
 interface BucketRow {
   bucket_type: string
   bucket_start: Date
@@ -124,46 +134,47 @@ export class AnalyticsService {
       ["month", monthBucket(now)],
     ] as const
 
-    // All writes for a click run in ONE transaction so the dedup row and the
-    // aggregate increments succeed or fail together — no partial writes, and no
-    // "already deduped but not counted" undercount on a mid-write failure.
+    // Derive the (non-reversible) daily hash. After this the raw ip/userAgent
+    // are not referenced by anything we persist.
+    const hash = computeDailyVisitorHash(this.secret, {
+      urlId: input.urlId,
+      dateStr,
+      ip: input.ip,
+      userAgent: input.userAgent,
+    })
+
+    // First sighting of this visitor today → count a unique. This insert is
+    // deliberately its OWN statement, outside the transaction below: the
+    // table's unique constraint is the sole arbiter of "first sighting", via
+    // a plain INSERT (no ON CONFLICT) whose success/failure we observe
+    // directly. Two concurrent clicks from the same visitor race at the DB
+    // level on this single row — exactly one INSERT can ever succeed — so,
+    // unlike a check-then-insert (SELECT then conditionally INSERT), there is
+    // no window where both racers see "not present" and both count a unique.
+    // (A single INSERT ... ON CONFLICT DO NOTHING, deciding uniqueness from
+    // its rowCount/RETURNING, would be one round trip instead of two, but is
+    // deliberately avoided: some pg-compatible engines misreport rowCount/
+    // RETURNING for a no-op ON CONFLICT DO NOTHING, silently breaking dedup.)
+    let uniqueDelta = 0
+    try {
+      await this.pool.query(
+        `INSERT INTO daily_unique_click_dedup
+           (url_id, bucket_date, daily_visitor_hash)
+         VALUES ($1, $2, $3)`,
+        [input.urlId, dateStr, hash]
+      )
+      uniqueDelta = 1
+    } catch (e) {
+      if (!isUniqueViolation(e)) throw e
+      uniqueDelta = 0
+    }
+
+    // The bucket/country aggregate increments run in their own transaction —
+    // they always happen (every click counts toward clicks_count), using the
+    // uniqueDelta already decided above.
     const client = await this.pool.connect()
     try {
       await client.query("BEGIN")
-
-      // Derive the (non-reversible) daily hash. After this the raw ip/userAgent
-      // are not referenced by anything we persist.
-      const hash = computeDailyVisitorHash(this.secret, {
-        urlId: input.urlId,
-        dateStr,
-        ip: input.ip,
-        userAgent: input.userAgent,
-      })
-
-      // First sighting of this visitor today → count a unique. We check-then-
-      // insert inside the transaction; the unique constraint + ON CONFLICT DO
-      // NOTHING is the concurrency backstop — it guarantees at most one dedup
-      // row per visitor/day/link regardless of races, so the worst case under
-      // concurrent clicks from the same visitor is an off-by-one on the
-      // *estimated* unique count for that instant, never a duplicate row or a
-      // count that drifts over time. This is an aggregate estimate, not an
-      // exact figure (see the analytics dialog's "estimate" labeling).
-      const existing = await client.query(
-        `SELECT 1 FROM daily_unique_click_dedup
-         WHERE url_id = $1 AND bucket_date = $2 AND daily_visitor_hash = $3
-         LIMIT 1`,
-        [input.urlId, dateStr, hash]
-      )
-      const uniqueDelta = existing.rows.length === 0 ? 1 : 0
-      if (uniqueDelta === 1) {
-        await client.query(
-          `INSERT INTO daily_unique_click_dedup
-             (url_id, bucket_date, daily_visitor_hash)
-           VALUES ($1, $2, $3)
-           ON CONFLICT (url_id, bucket_date, daily_visitor_hash) DO NOTHING`,
-          [input.urlId, dateStr, hash]
-        )
-      }
 
       for (const [type, start] of buckets) {
         await client.query(
