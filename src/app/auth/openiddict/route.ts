@@ -60,6 +60,9 @@ export async function GET(request: NextRequest) {
   if (session.role === "viewer") {
     // downgrade all API tokens to viewer role if the user is a viewer, to prevent privilege escalation
     await apiTokenService.downgradeTokensForViewer(session.userInfo.sub)
+  } else if (!session.role) {
+    // revoke all API tokens if the user has no role, to prevent privilege escalation
+    await apiTokenService.revokeTokensForUser(session.userInfo.sub)
   }
 
   await session.save()

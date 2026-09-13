@@ -169,6 +169,7 @@ export class ApiTokenService {
     return { tokenId: row.id, role: row.role, ownerSub: row.owner_sub }
   }
 
+  /** Downgrades all API tokens for a user to the 'viewer' role, in case the user's role was downgraded. */
   async downgradeTokensForViewer(ownerSub: string): Promise<void> {
     await this.pool
       .query(
@@ -177,6 +178,15 @@ export class ApiTokenService {
       )
       .catch((error) => {
         console.error("Failed to downgrade api_tokens for viewer:", error)
+      })
+  }
+
+  /** Revokes all API tokens for a user, in case the user is no longer authorized. */
+  async revokeTokensForUser(ownerSub: string): Promise<void> {
+    await this.pool
+      .query("DELETE FROM api_tokens WHERE owner_sub = $1", [ownerSub])
+      .catch((error) => {
+        console.error("Failed to revoke api_tokens for user:", error)
       })
   }
 }
