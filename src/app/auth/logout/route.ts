@@ -1,11 +1,5 @@
-import * as client from "openid-client"
 import { apiTokenService } from "@/lib/api-tokens"
-import {
-  clientConfig,
-  defaultSession,
-  getClientConfig,
-  getSession,
-} from "@/lib/auth"
+import { clientConfig, defaultSession, getSession } from "@/lib/auth"
 
 export async function GET() {
   if (!clientConfig) {
@@ -13,11 +7,6 @@ export async function GET() {
   }
 
   const session = await getSession()
-  const openIdClientConfig = await getClientConfig()
-  const endSessionUrl = client.buildEndSessionUrl(openIdClientConfig, {
-    post_logout_redirect_uri: clientConfig.postLogoutRedirectUri,
-    id_token_hint: session.accessToken ?? "",
-  })
   if (session.userInfo) {
     await apiTokenService.revokeSessionToken(session.userInfo.sub)
   }
@@ -28,5 +17,5 @@ export async function GET() {
   session.codeVerifier = defaultSession.codeVerifier
   session.state = defaultSession.state
   await session.save()
-  return Response.redirect(endSessionUrl.href)
+  return Response.redirect(`${clientConfig.postLogoutRedirectUri}/admin`)
 }
