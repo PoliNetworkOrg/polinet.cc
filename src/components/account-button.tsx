@@ -71,17 +71,18 @@ export function AccountButton({
           <Button
             variant="outline"
             className="mt-4 w-full"
+            aria-label="Manage API tokens"
             onClick={() => setTokensDialogOpen(true)}
           >
             <KeyRound />
             <span>API Tokens</span>
           </Button>
-          <a href="/auth/logout" className="mt-2 block">
-            <Button variant="outline" className="w-full">
+          <Button asChild variant="destructive" aria-label="Log out">
+            <a href="/auth/logout" className="w-full mt-2 block">
               <LogOut />
               <span>Log out</span>
-            </Button>
-          </a>
+            </a>
+          </Button>
         </PopoverContent>
       </Popover>
 

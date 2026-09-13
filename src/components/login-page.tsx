@@ -23,12 +23,12 @@ export function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <a href="/auth/login" className="block">
-            <Button size="lg" className="w-full">
+          <Button asChild size="lg" aria-label="Sign in">
+            <a href="/auth/login" className="block w-full">
               <LogIn />
               <span>Sign in</span>
-            </Button>
-          </a>
+            </a>
+          </Button>
         </CardContent>
       </Card>
     </div>

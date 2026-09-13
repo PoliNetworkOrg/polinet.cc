@@ -140,6 +140,7 @@ export function ApiTokensDialog({
                 type="button"
                 size="icon"
                 variant="outline"
+                aria-label="Copy API token"
                 onClick={() => copyToClipboard(revealedToken.token)}
               >
                 <Copy />
@@ -239,6 +240,7 @@ export function ApiTokensDialog({
                     variant="ghost"
                     size="icon"
                     disabled={revokingId === token.id}
+                    aria-label={`Revoke API token: ${token.name}`}
                     onClick={() => handleRevoke(token)}
                   >
                     <Trash2 className="stroke-destructive" />
