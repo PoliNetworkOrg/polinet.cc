@@ -1,6 +1,7 @@
 "use client"
 
 import { SiGithub as Github } from "@icons-pack/react-simple-icons"
+import type { UrlRecord, UrlsQueryParams } from "@polinetworkorg/polinet.cc"
 import { FileCodeCorner, Plus, Search, Star, Tag, X } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
@@ -33,7 +34,6 @@ import {
 } from "@/components/ui/table"
 import { env } from "@/env"
 import { useAllTags, useUrls } from "@/hooks/urls"
-import type { UrlRecord, UrlsQueryParams } from "@/lib/schemas"
 import { copyToClipboard, getTagColor, makeShortUrl } from "@/lib/utils"
 import { CreateUrlDialog } from "./create-url-dialog"
 import { type EditDialogState, EditUrlDialog } from "./edit-url-dialog"

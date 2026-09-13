@@ -6,7 +6,11 @@ const withBundleAnalyzer = bundleAnalyzer({ enabled: ANALYZE_AND_PROFILE })
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  transpilePackages: ["@t3-oss/env-nextjs", "@t3-oss/env-core"],
+  transpilePackages: [
+    "@t3-oss/env-nextjs",
+    "@t3-oss/env-core",
+    "@polinetworkorg/polinet.cc",
+  ],
   experimental: { reactCompiler: true, swcTraceProfiling: ANALYZE_AND_PROFILE },
 }
 

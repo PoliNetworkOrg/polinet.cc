@@ -1,5 +1,6 @@
 "use client"
 
+import type { UrlRecord } from "@polinetworkorg/polinet.cc"
 import { Download } from "lucide-react"
 import { useMemo, useState } from "react"
 import {
@@ -8,7 +9,6 @@ import {
   type QrOptionKey,
   type QrOptions,
 } from "@/lib/qr-config"
-import type { UrlRecord } from "@/lib/schemas"
 import { makeShortUrl } from "@/lib/utils"
 import { QrCode } from "./qr-code"
 import { Button } from "./ui/button"

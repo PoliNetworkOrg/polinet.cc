@@ -1,0 +1,71 @@
+{
+  "name": "@polinetworkorg/polinet.cc",
+  "version": "0.1.0",
+  "description": "ts-rest contract and zod schemas for the polinet.cc URL shortener API",
+  "license": "MIT",
+  "author": "PoliNetwork",
+  "homepage": "https://github.com/PoliNetworkOrg/polinet.cc#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PoliNetworkOrg/polinet.cc.git",
+    "directory": "packages/contract"
+  },
+  "bugs": {
+    "url": "https://github.com/PoliNetworkOrg/polinet.cc/issues"
+  },
+  "keywords": [
+    "ts-rest",
+    "contract",
+    "zod",
+    "polinet",
+    "url-shortener"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "import": {
+          "types": "./dist/index.d.ts",
+          "default": "./dist/index.js"
+        },
+        "require": {
+          "types": "./dist/index.d.cts",
+          "default": "./dist/index.cjs"
+        }
+      },
+      "./package.json": "./package.json"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "check:types": "tsc --noEmit",
+    "test": "vitest run",
+    "prepublishOnly": "pnpm run check:types && pnpm run build"
+  },
+  "peerDependencies": {
+    "@ts-rest/core": "^3.52.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@ts-rest/core": "3.52.1",
+    "tsup": "^8.5.0",
+    "typescript": "^5",
+    "vitest": "^4.1.10",
+    "zod": "^3.24.1"
+  }
+}

@@ -1,5 +1,5 @@
+import type { PaginatedUrlsResponse } from "@polinetworkorg/polinet.cc"
 import { useState } from "react"
-import type { PaginatedUrlsResponse } from "@/lib/schemas"
 import { withPages } from "@/lib/utils"
 import {
   Pagination,
