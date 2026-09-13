@@ -116,13 +116,14 @@ export class ApiTokenService {
    */
   async mintSessionToken(owner: TokenOwner, role: Role): Promise<string> {
     const token = generateRawToken()
+    const client = await this.pool.connect()
     try {
-      await this.pool.query("BEGIN")
-      await this.pool.query(
+      await client.query("BEGIN")
+      await client.query(
         "DELETE FROM api_tokens WHERE owner_sub = $1 AND is_session = TRUE",
         [owner.sub]
       )
-      await this.pool.query(
+      await client.query(
         `
           INSERT INTO api_tokens
             (name, token_hash, token_prefix, role, owner_sub, owner_name, owner_email, is_session)
@@ -138,11 +139,13 @@ export class ApiTokenService {
           owner.email,
         ]
       )
-      await this.pool.query("COMMIT")
+      await client.query("COMMIT")
       return token
     } catch (error) {
-      await this.pool.query("ROLLBACK")
+      await client.query("ROLLBACK")
       throw error
+    } finally {
+      client.release()
     }
   }
 
