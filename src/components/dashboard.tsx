@@ -8,6 +8,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { useDebounce } from "use-debounce"
 import logo from "@/assets/logo.png"
+import { AccountButton } from "@/components/account-button"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -45,7 +46,7 @@ import { MobileRow, UrlRecordRow } from "./url-record-row"
 const ALL_TAGS_VALUE = "__all__"
 const TAG_VALUE_PREFIX = "tag:"
 
-export function Dashboard() {
+export function Dashboard({ user }: { user: { name: string; email: string } }) {
   const [searchInput, setSearchInput] = useState("")
   const [debouncedSearch] = useDebounce(searchInput, 300)
   const [qp, setQueryParams] = useState<UrlsQueryParams>({
@@ -168,6 +169,7 @@ export function Dashboard() {
             <Plus />
             <span>Create Short URL</span>
           </Button>
+          <AccountButton user={user} />
         </div>
       </div>
 
