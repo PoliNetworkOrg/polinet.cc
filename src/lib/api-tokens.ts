@@ -116,27 +116,34 @@ export class ApiTokenService {
    */
   async mintSessionToken(owner: TokenOwner, role: Role): Promise<string> {
     const token = generateRawToken()
-    await this.pool.query(
-      "DELETE FROM api_tokens WHERE owner_sub = $1 AND is_session = TRUE",
-      [owner.sub]
-    )
-    await this.pool.query(
-      `
-        INSERT INTO api_tokens
-          (name, token_hash, token_prefix, role, owner_sub, owner_name, owner_email, is_session)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE)
-      `,
-      [
-        SESSION_TOKEN_NAME,
-        hashToken(token),
-        tokenPrefixOf(token),
-        role,
-        owner.sub,
-        owner.name,
-        owner.email,
-      ]
-    )
-    return token
+    try {
+      await this.pool.query("BEGIN")
+      await this.pool.query(
+        "DELETE FROM api_tokens WHERE owner_sub = $1 AND is_session = TRUE",
+        [owner.sub]
+      )
+      await this.pool.query(
+        `
+          INSERT INTO api_tokens
+            (name, token_hash, token_prefix, role, owner_sub, owner_name, owner_email, is_session)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE)
+        `,
+        [
+          SESSION_TOKEN_NAME,
+          hashToken(token),
+          tokenPrefixOf(token),
+          role,
+          owner.sub,
+          owner.name,
+          owner.email,
+        ]
+      )
+      await this.pool.query("COMMIT")
+      return token
+    } catch (error) {
+      await this.pool.query("ROLLBACK")
+      throw error
+    }
   }
 
   /** Called on logout so a stale session token can't outlive the session. */
