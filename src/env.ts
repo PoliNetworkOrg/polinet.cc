@@ -14,6 +14,10 @@ const domainSchema = z
 export const env = createEnv({
   client: {
     NEXT_PUBLIC_DOMAIN: domainSchema,
+    // OIDC login is optional: leave these empty to disable the /admin auth flow entirely
+    NEXT_PUBLIC_OIDC_URL: z.string().url().optional(),
+    NEXT_PUBLIC_OIDC_CLIENT_ID: z.string().optional(),
+    NEXT_PUBLIC_OIDC_SCOPE: z.string().default("openid profile email"),
   },
   server: {
     PORT: z.coerce.number().min(1).max(65535).default(PORT),
@@ -27,12 +31,22 @@ export const env = createEnv({
     DB_PASS: z.string().min(1),
     DB_NAME: z.string().min(3).default("url_shortener"),
     DB_URL: z.string().url().optional(),
+    // Role mapping: ROLES_CLAIM is the OIDC claim (from the ID token or the
+    // userinfo endpoint) holding the user's roles, ROLE_ADMIN/ROLE_VIEWER are
+    // the claim values mapped to the internal roles. When any of the three is
+    // left unset the mapping is disabled and every logged in user is an admin.
+    ROLES_CLAIM: z.string().optional(),
+    ROLE_ADMIN: z.string().optional(),
+    ROLE_VIEWER: z.string().optional(),
   },
 
   runtimeEnv: {
     PORT: process.env.PORT,
     DOMAIN: process.env.DOMAIN,
     NEXT_PUBLIC_DOMAIN: process.env.DOMAIN,
+    NEXT_PUBLIC_OIDC_URL: process.env.OIDC_URL,
+    NEXT_PUBLIC_OIDC_CLIENT_ID: process.env.OIDC_CLIENT_ID,
+    NEXT_PUBLIC_OIDC_SCOPE: process.env.OIDC_SCOPE,
     DB_HOST: process.env.DB_HOST,
     DB_PORT: process.env.DB_PORT,
     DB_USER: process.env.DB_USER,
@@ -40,6 +54,9 @@ export const env = createEnv({
     DB_NAME: process.env.DB_NAME,
     NODE_ENV: process.env.NODE_ENV,
     DB_URL: process.env.DB_URL,
+    ROLES_CLAIM: process.env.ROLES_CLAIM,
+    ROLE_ADMIN: process.env.ROLE_ADMIN,
+    ROLE_VIEWER: process.env.ROLE_VIEWER,
   },
 
   /**

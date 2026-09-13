@@ -17,9 +17,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 export type UrlRecordRowProps = {
   url: UrlRecord
   onCopy: (url: UrlRecord) => void
-  onDelete: (url: UrlRecord) => void
-  onEdit: (url: UrlRecord) => void
   onQrCode: (url: UrlRecord) => void
+  /** left out for viewers, who cannot modify URLs */
+  onDelete?: (url: UrlRecord) => void
+  /** left out for viewers, who cannot modify URLs */
+  onEdit?: (url: UrlRecord) => void
 }
 
 function TagBadges({ tags }: { tags: string[] }) {
@@ -115,12 +117,16 @@ export function MobileRow({
           <Button variant="ghost" size="icon" onClick={() => onQrCode(url)}>
             <QrCode />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => onEdit(url)}>
-            <Edit />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => onDelete(url)}>
-            <Trash2 className="stroke-destructive" />
-          </Button>
+          {onEdit && (
+            <Button variant="ghost" size="icon" onClick={() => onEdit(url)}>
+              <Edit />
+            </Button>
+          )}
+          {onDelete && (
+            <Button variant="ghost" size="icon" onClick={() => onDelete(url)}>
+              <Trash2 className="stroke-destructive" />
+            </Button>
+          )}
         </div>
       </div>
     </div>
@@ -191,16 +197,24 @@ export function UrlRecordRow({ url, ...props }: UrlRecordRowProps) {
           >
             <QrCode />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => props.onEdit(url)}>
-            <Edit />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => props.onDelete(url)}
-          >
-            <Trash2 className="stroke-destructive" />
-          </Button>
+          {props.onEdit && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => props.onEdit?.(url)}
+            >
+              <Edit />
+            </Button>
+          )}
+          {props.onDelete && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => props.onDelete?.(url)}
+            >
+              <Trash2 className="stroke-destructive" />
+            </Button>
+          )}
         </div>
       </TableCell>
     </TableRow>
