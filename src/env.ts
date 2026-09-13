@@ -14,6 +14,10 @@ const domainSchema = z
 export const env = createEnv({
   client: {
     NEXT_PUBLIC_DOMAIN: domainSchema,
+    // OIDC login is optional: leave these empty to disable the /admin auth flow entirely
+    NEXT_PUBLIC_OIDC_URL: z.string().url().optional(),
+    NEXT_PUBLIC_OIDC_CLIENT_ID: z.string().optional(),
+    NEXT_PUBLIC_OIDC_SCOPE: z.string().default("openid profile email"),
   },
   server: {
     PORT: z.coerce.number().min(1).max(65535).default(PORT),
@@ -33,6 +37,9 @@ export const env = createEnv({
     PORT: process.env.PORT,
     DOMAIN: process.env.DOMAIN,
     NEXT_PUBLIC_DOMAIN: process.env.DOMAIN,
+    NEXT_PUBLIC_OIDC_URL: process.env.OIDC_URL,
+    NEXT_PUBLIC_OIDC_CLIENT_ID: process.env.OIDC_CLIENT_ID,
+    NEXT_PUBLIC_OIDC_SCOPE: process.env.OIDC_SCOPE,
     DB_HOST: process.env.DB_HOST,
     DB_PORT: process.env.DB_PORT,
     DB_USER: process.env.DB_USER,

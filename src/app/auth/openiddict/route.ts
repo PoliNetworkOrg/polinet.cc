@@ -4,6 +4,10 @@ import * as client from "openid-client"
 import { clientConfig, getClientConfig, getSession } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
+  if (!clientConfig) {
+    return new Response("Not Found", { status: 404 })
+  }
+
   const session = await getSession()
   const openIdClientConfig = await getClientConfig()
   const headerList = await headers()

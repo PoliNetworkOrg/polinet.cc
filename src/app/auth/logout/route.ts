@@ -7,6 +7,10 @@ import {
 } from "@/lib/auth"
 
 export async function GET() {
+  if (!clientConfig) {
+    return new Response("Not Found", { status: 404 })
+  }
+
   const session = await getSession()
   const openIdClientConfig = await getClientConfig()
   const endSessionUrl = client.buildEndSessionUrl(openIdClientConfig, {

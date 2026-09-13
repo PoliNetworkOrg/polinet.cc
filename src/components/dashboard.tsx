@@ -46,7 +46,11 @@ import { MobileRow, UrlRecordRow } from "./url-record-row"
 const ALL_TAGS_VALUE = "__all__"
 const TAG_VALUE_PREFIX = "tag:"
 
-export function Dashboard({ user }: { user: { name: string; email: string } }) {
+export function Dashboard({
+  user,
+}: {
+  user?: { name: string; email: string }
+}) {
   const [searchInput, setSearchInput] = useState("")
   const [debouncedSearch] = useDebounce(searchInput, 300)
   const [qp, setQueryParams] = useState<UrlsQueryParams>({
@@ -169,7 +173,7 @@ export function Dashboard({ user }: { user: { name: string; email: string } }) {
             <Plus />
             <span>Create Short URL</span>
           </Button>
-          <AccountButton user={user} />
+          {user && <AccountButton user={user} />}
         </div>
       </div>
 

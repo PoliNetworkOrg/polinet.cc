@@ -5,38 +5,34 @@ import {
 } from "iron-session"
 import { cookies } from "next/headers"
 import * as client from "openid-client"
+import { env } from "@/env"
 
-function requireEnvVar(name: string, value: string | undefined): string {
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`)
-  }
-  return value
-}
+const domain = env.NEXT_PUBLIC_DOMAIN
+const appUrl = domain.startsWith("localhost")
+  ? `http://${env.NEXT_PUBLIC_DOMAIN}`
+  : `https://${env.NEXT_PUBLIC_DOMAIN}`
 
-const apiUrl = requireEnvVar(
-  "NEXT_PUBLIC_API_URL",
-  process.env.NEXT_PUBLIC_API_URL
-)
-const appUrl = requireEnvVar(
-  "NEXT_PUBLIC_APP_URL",
-  process.env.NEXT_PUBLIC_APP_URL
-)
+// OIDC login is entirely optional: when any of these are left unset, auth is
+// disabled and `/admin` is served without a login gate.
+export const clientConfig =
+  env.NEXT_PUBLIC_OIDC_URL &&
+  env.NEXT_PUBLIC_OIDC_CLIENT_ID &&
+  env.NEXT_PUBLIC_OIDC_SCOPE
+    ? {
+        url: env.NEXT_PUBLIC_OIDC_URL,
+        audience: env.NEXT_PUBLIC_OIDC_URL,
+        clientId: env.NEXT_PUBLIC_OIDC_CLIENT_ID,
+        scope: env.NEXT_PUBLIC_OIDC_SCOPE,
+        redirectUri: `${appUrl}/auth/openiddict`,
+        postLogoutRedirectUri: appUrl,
+        responseType: "code",
+        grantType: "authorization_code",
+        postLoginRoute: `${appUrl}/admin`,
+        codeChallengeMethod: "S256",
+      }
+    : undefined
 
-export const clientConfig = {
-  url: apiUrl,
-  audience: apiUrl,
-  clientId: requireEnvVar(
-    "NEXT_PUBLIC_CLIENT_ID",
-    process.env.NEXT_PUBLIC_CLIENT_ID
-  ),
-  scope: requireEnvVar("NEXT_PUBLIC_SCOPE", process.env.NEXT_PUBLIC_SCOPE),
-  redirectUri: `${appUrl}/auth/openiddict`,
-  postLogoutRedirectUri: appUrl,
-  responseType: "code",
-  grantType: "authorization_code",
-  postLoginRoute: `${appUrl}/admin`,
-  codeChallengeMethod: "S256",
-}
+export const isAuthEnabled = Boolean(clientConfig)
 
 export interface SessionData {
   isLoggedIn: boolean
@@ -80,6 +76,9 @@ export async function getSession(): Promise<IronSession<SessionData>> {
 }
 
 export async function getClientConfig() {
+  if (!clientConfig) {
+    throw new Error("OIDC is not configured")
+  }
   return await client.discovery(
     new URL(clientConfig.url),
     clientConfig.clientId
