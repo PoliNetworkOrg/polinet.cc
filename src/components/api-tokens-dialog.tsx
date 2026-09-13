@@ -111,6 +111,9 @@ export function ApiTokensDialog({
         toast.success("API token revoked")
         queryClient.invalidateQueries({ queryKey: ["api-tokens"] })
       }
+    } catch (error) {
+      toast.error("Failed to revoke API token")
+      console.error("Error revoking API token:", error)
     } finally {
       setRevokingId(null)
     }
