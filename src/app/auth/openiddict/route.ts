@@ -1,7 +1,12 @@
 import { headers } from "next/headers"
 import type { NextRequest } from "next/server"
 import * as client from "openid-client"
-import { clientConfig, getClientConfig, getSession } from "@/lib/auth"
+import {
+  clientConfig,
+  getClientConfig,
+  getSession,
+  resolveRole,
+} from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
   if (!clientConfig) {
@@ -46,6 +51,10 @@ export async function GET(request: NextRequest) {
     name: userinfo.given_name ?? userinfo.name ?? "",
     email: userinfo.email ?? "",
   }
+
+  // the roles claim can be carried by either the ID token or the userinfo
+  // response, so both are looked at (userinfo wins)
+  session.role = resolveRole({ ...claims, ...userinfo }) ?? undefined
 
   await session.save()
   return Response.redirect(clientConfig.postLoginRoute)

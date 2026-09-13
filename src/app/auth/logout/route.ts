@@ -20,6 +20,7 @@ export async function GET() {
   session.isLoggedIn = defaultSession.isLoggedIn
   session.accessToken = defaultSession.accessToken
   session.userInfo = defaultSession.userInfo
+  session.role = defaultSession.role
   session.codeVerifier = defaultSession.codeVerifier
   session.state = defaultSession.state
   await session.save()

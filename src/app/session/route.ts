@@ -9,6 +9,7 @@ export async function GET() {
     return Response.json({
       isLoggedIn: session.isLoggedIn,
       userInfo: session.userInfo,
+      role: session.role,
     })
   } catch (e) {
     return Response.json({ error: e }, { status: 500 })

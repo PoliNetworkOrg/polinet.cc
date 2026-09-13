@@ -34,11 +34,30 @@ export const clientConfig =
 
 export const isAuthEnabled = Boolean(clientConfig)
 
+/**
+ * Internal roles: `admin` can read and modify, `viewer` can only read.
+ */
+export type Role = "admin" | "viewer"
+
+// Role mapping is entirely optional too: when any of these is left unset every
+// logged in user is treated as an admin.
+export const rolesConfig =
+  env.ROLES_CLAIM && env.ROLE_ADMIN && env.ROLE_VIEWER
+    ? {
+        claim: env.ROLES_CLAIM,
+        admin: env.ROLE_ADMIN,
+        viewer: env.ROLE_VIEWER,
+      }
+    : undefined
+
+export const isRoleMappingEnabled = Boolean(rolesConfig)
+
 export interface SessionData {
   isLoggedIn: boolean
   accessToken?: string
   codeVerifier?: string
   state?: string
+  role?: Role
   userInfo?: {
     sub: string
     name: string
@@ -51,6 +70,7 @@ export const defaultSession: SessionData = {
   accessToken: undefined,
   codeVerifier: undefined,
   state: undefined,
+  role: undefined,
   userInfo: undefined,
 }
 
@@ -71,6 +91,7 @@ export async function getSession(): Promise<IronSession<SessionData>> {
   if (!session.isLoggedIn) {
     session.accessToken = defaultSession.accessToken
     session.userInfo = defaultSession.userInfo
+    session.role = defaultSession.role
   }
   return session
 }
@@ -83,4 +104,55 @@ export async function getClientConfig() {
     new URL(clientConfig.url),
     clientConfig.clientId
   )
+}
+
+/**
+ * Normalizes a claim value into the list of role names it carries. Providers
+ * hand roles over either as an array or as a single separated string.
+ */
+function claimToRoleNames(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((entry): entry is string => typeof entry === "string")
+  }
+  if (typeof value === "string") {
+    return value.split(/[\s,]+/).filter(Boolean)
+  }
+  return []
+}
+
+/**
+ * Maps the claims of a logged in user onto an internal role. Returns `null`
+ * when role mapping is enabled and the user carries neither configured role,
+ * meaning they have no access at all.
+ */
+export function resolveRole(claims: Record<string, unknown>): Role | null {
+  if (!rolesConfig) {
+    // no (or incomplete) mapping configured: everybody is an admin
+    return "admin"
+  }
+  const roleNames = claimToRoleNames(claims[rolesConfig.claim])
+  if (roleNames.includes(rolesConfig.admin)) return "admin"
+  if (roleNames.includes(rolesConfig.viewer)) return "viewer"
+  return null
+}
+
+/**
+ * The role of the current user, or `null` when they have no access. With auth
+ * disabled there is no user to speak of and everybody is an admin.
+ */
+export async function getRole(): Promise<Role | null> {
+  if (!isAuthEnabled) return "admin"
+  const session = await getSession()
+  if (!session.isLoggedIn || !session.userInfo) return null
+  return session.role ?? null
+}
+
+/** Reading features are open to both roles. */
+export function canRead(role: Role | null): role is Role {
+  return role === "admin" || role === "viewer"
+}
+
+/** Modifying features are reserved to admins. */
+export function canWrite(role: Role | null): role is "admin" {
+  return role === "admin"
 }

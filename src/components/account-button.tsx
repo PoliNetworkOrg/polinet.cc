@@ -8,6 +8,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import type { Role } from "@/lib/auth"
 
 function getInitials(name: string) {
   return (
@@ -21,10 +22,17 @@ function getInitials(name: string) {
   )
 }
 
+const ROLE_LABELS: Record<Role, string> = {
+  admin: "Admin",
+  viewer: "Viewer",
+}
+
 export function AccountButton({
   user,
+  userRole,
 }: {
   user: { name: string; email: string }
+  userRole: Role
 }) {
   return (
     <Popover>
@@ -49,6 +57,9 @@ export function AccountButton({
             <p className="truncate font-medium">{user.name}</p>
             <p className="text-muted-foreground truncate text-sm">
               {user.email}
+            </p>
+            <p className="text-muted-foreground text-xs">
+              {ROLE_LABELS[userRole]}
             </p>
           </div>
         </div>

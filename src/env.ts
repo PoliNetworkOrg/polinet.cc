@@ -31,6 +31,13 @@ export const env = createEnv({
     DB_PASS: z.string().min(1),
     DB_NAME: z.string().min(3).default("url_shortener"),
     DB_URL: z.string().url().optional(),
+    // Role mapping: ROLES_CLAIM is the OIDC claim (from the ID token or the
+    // userinfo endpoint) holding the user's roles, ROLE_ADMIN/ROLE_VIEWER are
+    // the claim values mapped to the internal roles. When any of the three is
+    // left unset the mapping is disabled and every logged in user is an admin.
+    ROLES_CLAIM: z.string().optional(),
+    ROLE_ADMIN: z.string().optional(),
+    ROLE_VIEWER: z.string().optional(),
   },
 
   runtimeEnv: {
@@ -47,6 +54,9 @@ export const env = createEnv({
     DB_NAME: process.env.DB_NAME,
     NODE_ENV: process.env.NODE_ENV,
     DB_URL: process.env.DB_URL,
+    ROLES_CLAIM: process.env.ROLES_CLAIM,
+    ROLE_ADMIN: process.env.ROLE_ADMIN,
+    ROLE_VIEWER: process.env.ROLE_VIEWER,
   },
 
   /**

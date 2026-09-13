@@ -2,8 +2,11 @@
 
 import type { SubmissionResult } from "@conform-to/react"
 import { parseWithZod } from "@conform-to/zod"
+import { canWrite, getRole } from "./auth"
 import { urlService } from "./url-service"
 import { createUrlSchema, editUrlSchema } from "./validations"
+
+const FORBIDDEN = "You don't have permission to modify URLs"
 
 export async function createUrl(
   prevState: {
@@ -17,6 +20,11 @@ export async function createUrl(
   const result: typeof prevState = {
     ...prevState,
     lastResult: submission.reply(),
+  }
+
+  if (!canWrite(await getRole())) {
+    result.error = FORBIDDEN
+    return result
   }
 
   if (submission.status === "success") {
@@ -48,6 +56,11 @@ export async function editUrl(
     lastResult: submission.reply(),
   }
 
+  if (!canWrite(await getRole())) {
+    result.error = FORBIDDEN
+    return result
+  }
+
   if (submission.status === "success") {
     try {
       await urlService.updateUrl(
@@ -62,4 +75,21 @@ export async function editUrl(
     }
   }
   return result
+}
+
+export async function deleteUrl(
+  shortCode: string
+): Promise<{ error: string | null }> {
+  if (!canWrite(await getRole())) {
+    return { error: FORBIDDEN }
+  }
+
+  try {
+    const deleted = await urlService.deleteUrl(shortCode)
+    return { error: deleted ? null : "URL not found" }
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Failed to delete URL",
+    }
+  }
 }

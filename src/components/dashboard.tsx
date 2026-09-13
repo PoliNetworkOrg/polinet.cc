@@ -34,6 +34,8 @@ import {
 } from "@/components/ui/table"
 import { env } from "@/env"
 import { useAllTags, useUrls } from "@/hooks/urls"
+import { deleteUrl } from "@/lib/actions"
+import type { Role } from "@/lib/auth"
 import type { UrlRecord, UrlsQueryParams } from "@/lib/schemas"
 import { copyToClipboard, getTagColor, makeShortUrl } from "@/lib/utils"
 import { CreateUrlDialog } from "./create-url-dialog"
@@ -48,9 +50,15 @@ const TAG_VALUE_PREFIX = "tag:"
 
 export function Dashboard({
   user,
+  userRole,
 }: {
   user?: { name: string; email: string }
+  userRole: Role
 }) {
+  // viewers get a read-only dashboard: creating, editing and deleting are
+  // reserved to admins (and enforced server side by the actions themselves)
+  const canModify = userRole === "admin"
+
   const [searchInput, setSearchInput] = useState("")
   const [debouncedSearch] = useDebounce(searchInput, 300)
   const [qp, setQueryParams] = useState<UrlsQueryParams>({
@@ -116,16 +124,14 @@ export function Dashboard({
     if (!confirm("Are you sure you want to delete this URL?")) return
 
     try {
-      const response = await fetch(`/api/urls/${shortCode}`, {
-        method: "DELETE",
-      })
-
-      if (response.ok) {
-        toast.success("URL deleted successfully")
-        refetch()
-      } else {
-        toast.error("Failed to delete URL")
+      const { error } = await deleteUrl(shortCode)
+      if (error) {
+        toast.error(error)
+        return
       }
+      toast.success("URL deleted successfully")
+      refetch()
+      refetchTags()
     } catch (error) {
       console.error("Error deleting URL:", error)
       toast.error("Failed to delete URL")
@@ -169,11 +175,13 @@ export function Dashboard({
               <span>API Docs</span>
             </Button>
           </Link>
-          <Button size="lg" onClick={() => setCreateDialogOpen(true)}>
-            <Plus />
-            <span>Create Short URL</span>
-          </Button>
-          {user && <AccountButton user={user} />}
+          {canModify && (
+            <Button size="lg" onClick={() => setCreateDialogOpen(true)}>
+              <Plus />
+              <span>Create Short URL</span>
+            </Button>
+          )}
+          {user && <AccountButton user={user} userRole={userRole} />}
         </div>
       </div>
 
@@ -290,7 +298,9 @@ export function Dashboard({
             <div className="text-center py-6 text-muted-foreground">
               {searchInput
                 ? "No URLs found matching your search."
-                : "No URLs found. Create your first short URL to get started."}
+                : canModify
+                  ? "No URLs found. Create your first short URL to get started."
+                  : "No URLs found."}
             </div>
           ) : (
             <>
@@ -300,9 +310,17 @@ export function Dashboard({
                     key={url.id}
                     url={url}
                     onCopy={(url) => copyToClipboard(makeShortUrl(url))}
-                    onDelete={(url) => handleDelete(url.short_code)}
-                    onEdit={(url) => setEditDialog({ open: true, url })}
                     onQrCode={(url) => setQrDialog({ open: true, url })}
+                    onDelete={
+                      canModify
+                        ? (url) => handleDelete(url.short_code)
+                        : undefined
+                    }
+                    onEdit={
+                      canModify
+                        ? (url) => setEditDialog({ open: true, url })
+                        : undefined
+                    }
                   />
                 ))}
               </div>
@@ -325,9 +343,17 @@ export function Dashboard({
                       key={url.id}
                       url={url}
                       onCopy={(url) => copyToClipboard(makeShortUrl(url))}
-                      onDelete={(url) => handleDelete(url.short_code)}
-                      onEdit={(url) => setEditDialog({ open: true, url })}
                       onQrCode={(url) => setQrDialog({ open: true, url })}
+                      onDelete={
+                        canModify
+                          ? (url) => handleDelete(url.short_code)
+                          : undefined
+                      }
+                      onEdit={
+                        canModify
+                          ? (url) => setEditDialog({ open: true, url })
+                          : undefined
+                      }
                     />
                   ))}
                 </TableBody>
@@ -359,25 +385,29 @@ export function Dashboard({
         </p>
       </div>
 
-      <CreateUrlDialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-        onSuccess={() => {
-          refetch()
-          refetchTags()
-          setCreateDialogOpen(false)
-        }}
-      />
+      {canModify && (
+        <>
+          <CreateUrlDialog
+            open={createDialogOpen}
+            onOpenChange={setCreateDialogOpen}
+            onSuccess={() => {
+              refetch()
+              refetchTags()
+              setCreateDialogOpen(false)
+            }}
+          />
 
-      <EditUrlDialog
-        {...editDialog}
-        onClose={() => setEditDialog({ open: false })}
-        onSuccess={() => {
-          refetch()
-          refetchTags()
-          setEditDialog({ open: false })
-        }}
-      />
+          <EditUrlDialog
+            {...editDialog}
+            onClose={() => setEditDialog({ open: false })}
+            onSuccess={() => {
+              refetch()
+              refetchTags()
+              setEditDialog({ open: false })
+            }}
+          />
+        </>
+      )}
 
       <QrCodeDialog
         open={qrDialog.open}
