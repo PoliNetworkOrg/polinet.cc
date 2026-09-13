@@ -1,0 +1,75 @@
+name: Publish contract package
+
+on:
+  push:
+    tags:
+      - "contract-v*"
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "Pack the tarball but do not publish"
+        type: boolean
+        default: true
+
+concurrency:
+  group: publish-contract
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Build and publish to npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Required for npm provenance attestations.
+      id-token: write
+    defaults:
+      run:
+        working-directory: packages/contract
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: .
+
+      - name: Check that the tag matches package.json
+        if: startsWith(github.ref, 'refs/tags/contract-v')
+        run: |
+          pkg_version="$(node -p "require('./package.json').version")"
+          tag_version="${GITHUB_REF_NAME#contract-v}"
+          if [ "$pkg_version" != "$tag_version" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match package.json version $pkg_version"
+            exit 1
+          fi
+
+      - name: Check types
+        run: pnpm run check:types
+
+      - name: Run tests
+        run: pnpm run test
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Pack (dry run)
+        if: github.event_name == 'workflow_dispatch' && inputs.dry-run
+        run: pnpm pack --pack-destination "$RUNNER_TEMP"
+
+      - name: Publish
+        if: github.event_name != 'workflow_dispatch' || !inputs.dry-run
+        run: pnpm publish --access public --no-git-checks --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"

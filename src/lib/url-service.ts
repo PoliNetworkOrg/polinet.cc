@@ -1,13 +1,13 @@
-import { nanoid } from "nanoid"
-import type { PoolClient } from "pg"
-import { getPool } from "./db"
 import {
   type GetUrlsQueryParams,
   type PaginatedUrlsResponse,
   URLRecord,
   URLRecords,
   type UrlRecord,
-} from "./schemas"
+} from "@polinetworkorg/polinet.cc"
+import { nanoid } from "nanoid"
+import type { PoolClient } from "pg"
+import { getPool } from "./db"
 
 type QueryClient = Pick<PoolClient, "query">
 

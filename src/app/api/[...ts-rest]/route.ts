@@ -1,5 +1,5 @@
+import { contract } from "@polinetworkorg/polinet.cc"
 import { createNextHandler } from "@ts-rest/serverless/next"
-import { contract } from "@/lib/contract"
 import { urlService } from "@/lib/url-service"
 
 const handler = createNextHandler(

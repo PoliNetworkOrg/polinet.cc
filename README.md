@@ -10,6 +10,7 @@ A Next.js URL shortener application for polinetwork.org domains.
 - 📈 **Click Tracking**: Monitor usage of your shortened URLs
 - 🗄️ **PostgreSQL**: Persistent storage with PostgreSQL database
 - 🎨 **Vibe Coded**: Claude wrote this, if it's broken blame him
+- 📦 **Typed Client**: the API contract is published as [`@polinetworkorg/polinet.cc`](https://www.npmjs.com/package/@polinetworkorg/polinet.cc)
 
 ### Why?
 
@@ -23,6 +24,17 @@ with `shadcn/ui`, allowing me to autogenerate both an `openapi.json` file and th
 docs for it with `@scalar/api-reference-react`.
 
 If I was to do it again I'd try `Hono` with SSG for the UI.
+
+## Repository layout
+
+This is a pnpm workspace:
+
+- `/` — the Next.js app (UI, API routes, database access).
+- `packages/contract` — [`@polinetworkorg/polinet.cc`](./packages/contract), the `ts-rest` contract
+  and zod schemas, published to npm so other services can call the API with full type safety.
+
+The app consumes the package through the workspace link, so the contract and the server that
+implements it can never drift apart.
 
 ## Setup
 

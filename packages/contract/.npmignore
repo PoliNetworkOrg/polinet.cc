@@ -1,0 +1,5 @@
+# `files` in package.json is the source of truth; this only guards stray output.
+src
+*.test.ts
+tsup.config.ts
+tsconfig.json

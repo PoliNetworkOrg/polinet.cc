@@ -2,6 +2,7 @@
 
 import { getFormProps, getInputProps, useForm } from "@conform-to/react"
 import { getZodConstraint, parseWithZod } from "@conform-to/zod"
+import { createUrlSchema } from "@polinetworkorg/polinet.cc"
 import { X } from "lucide-react"
 import { nanoid } from "nanoid"
 import { useActionState, useCallback, useEffect, useRef, useState } from "react"
@@ -20,7 +21,6 @@ import { Label } from "@/components/ui/label"
 import { env } from "@/env"
 import { createUrl } from "@/lib/actions"
 import { getTagColor } from "@/lib/utils"
-import { createUrlSchema } from "@/lib/validations"
 import { RandomText } from "./random-text"
 
 interface CreateUrlDialogProps {

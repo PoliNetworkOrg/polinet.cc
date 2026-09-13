@@ -1,3 +1,4 @@
+import type { UrlRecord } from "@polinetworkorg/polinet.cc"
 import {
   ArrowRight,
   Copy,
@@ -8,7 +9,6 @@ import {
   Star,
   Trash2,
 } from "lucide-react"
-import type { UrlRecord } from "@/lib/schemas"
 import { copyToClipboard, getTagColor, makeShortUrl } from "@/lib/utils"
 import { Button } from "./ui/button"
 import { TableCell, TableRow } from "./ui/table"

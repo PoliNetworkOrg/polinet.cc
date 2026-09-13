@@ -15,14 +15,16 @@ RUN pnpm --version
 # Install dependencies only when needed
 FROM base AS deps
 
-# Copy package files
+# Copy package files (workspace manifests must be present for --frozen-lockfile)
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/contract/package.json ./packages/contract/
 RUN --mount=type=cache,id=pnpm,target=./pnpm/store pnpm install --frozen-lockfile
 
 # Rebuild the source code only when needed
 FROM base AS builder
 
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/packages/contract/node_modules ./packages/contract/node_modules
 COPY . .
 
 # Next.js collects completely anonymous telemetry data about general usage.

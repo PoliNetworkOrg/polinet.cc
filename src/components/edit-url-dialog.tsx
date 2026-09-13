@@ -2,6 +2,8 @@
 
 import { getFormProps, getInputProps, useForm } from "@conform-to/react"
 import { getZodConstraint, parseWithZod } from "@conform-to/zod"
+import type { UrlRecord } from "@polinetworkorg/polinet.cc"
+import { editUrlSchema } from "@polinetworkorg/polinet.cc"
 import { X } from "lucide-react"
 import { useActionState, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
@@ -17,9 +19,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { editUrl } from "@/lib/actions"
-import type { UrlRecord } from "@/lib/schemas"
 import { getTagColor, makeShortUrl } from "@/lib/utils"
-import { editUrlSchema } from "@/lib/validations"
 
 export type EditDialogState =
   | {

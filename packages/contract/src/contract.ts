@@ -1,5 +1,5 @@
 import { initContract } from "@ts-rest/core"
-import z from "zod"
+import { z } from "zod"
 import { GetUrlsQueryParams, PaginatedUrlsResponse, URLRecord } from "./schemas"
 import { createUrlSchema, tagSchema } from "./validations"
 

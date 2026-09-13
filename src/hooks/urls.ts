@@ -1,6 +1,9 @@
+import {
+  PaginatedUrlsResponse,
+  type UrlsQueryParams,
+} from "@polinetworkorg/polinet.cc"
 import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { PaginatedUrlsResponse, type UrlsQueryParams } from "@/lib/schemas"
 
 async function fetchUrls(params: UrlsQueryParams) {
   const queryParams = new URLSearchParams()

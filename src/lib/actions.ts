@@ -2,8 +2,8 @@
 
 import type { SubmissionResult } from "@conform-to/react"
 import { parseWithZod } from "@conform-to/zod"
+import { createUrlSchema, editUrlSchema } from "@polinetworkorg/polinet.cc"
 import { urlService } from "./url-service"
-import { createUrlSchema, editUrlSchema } from "./validations"
 
 export async function createUrl(
   prevState: {
