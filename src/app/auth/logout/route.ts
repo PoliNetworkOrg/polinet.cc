@@ -1,4 +1,5 @@
 import * as client from "openid-client"
+import { apiTokenService } from "@/lib/api-tokens"
 import {
   clientConfig,
   defaultSession,
@@ -17,6 +18,9 @@ export async function GET() {
     post_logout_redirect_uri: clientConfig.postLogoutRedirectUri,
     id_token_hint: session.accessToken ?? "",
   })
+  if (session.userInfo) {
+    await apiTokenService.revokeSessionToken(session.userInfo.sub)
+  }
   session.isLoggedIn = defaultSession.isLoggedIn
   session.accessToken = defaultSession.accessToken
   session.userInfo = defaultSession.userInfo

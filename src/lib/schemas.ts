@@ -42,3 +42,23 @@ export const GetUrlsQueryParams = z.object({
 export type PaginatedUrlsResponse = z.infer<typeof PaginatedUrlsResponse>
 export type GetUrlsQueryParams = z.infer<typeof GetUrlsQueryParams>
 export type UrlsQueryParams = Partial<GetUrlsQueryParams>
+
+// mirrors the `Role` type in "@/lib/auth", duplicated here (rather than
+// imported) so this client-safe file never pulls in that server-only module
+export const ApiTokenRole = z.enum(["admin", "viewer"])
+
+export const ApiTokenSummary = z.object({
+  id: z.coerce.number(),
+  name: z.string(),
+  role: ApiTokenRole,
+  tokenPrefix: z.string(),
+  createdAt: z.coerce.date(),
+  lastUsedAt: z.coerce.date().nullable(),
+})
+export type ApiTokenSummary = z.infer<typeof ApiTokenSummary>
+
+/** A freshly created token: the raw secret is only ever available once. */
+export const CreatedApiToken = ApiTokenSummary.extend({
+  token: z.string(),
+})
+export type CreatedApiToken = z.infer<typeof CreatedApiToken>

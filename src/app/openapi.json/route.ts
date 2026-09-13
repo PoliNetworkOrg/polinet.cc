@@ -22,17 +22,14 @@ const openapiDocument = generateOpenApi(contract, {
     description: "PoliNetwork's Short URLs - Service API",
   },
   servers: [{ url: `https://${env.DOMAIN}/api` }],
+  security: [{ BearerAuth: [] }],
   components: {
     securitySchemes: {
-      CloudflareID: {
-        type: "apiKey",
-        in: "header",
-        name: "CF-Access-Client-Id",
-      },
-      CloudflareSecret: {
-        type: "apiKey",
-        in: "header",
-        name: "CF-Access-Client-Secret",
+      BearerAuth: {
+        type: "http",
+        scheme: "bearer",
+        description:
+          "Personal API token, created from the /admin dashboard's account menu. Send as `Authorization: Bearer <token>`.",
       },
     },
   },

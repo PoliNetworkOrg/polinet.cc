@@ -54,9 +54,9 @@ describe("resolveRole", () => {
 
   it("prefers admin when the user carries both roles", async () => {
     const { resolveRole } = await importAuth(FULL_MAPPING)
-    expect(resolveRole({ roles: ["shortener-viewer", "shortener-admin"] })).toBe(
-      "admin"
-    )
+    expect(
+      resolveRole({ roles: ["shortener-viewer", "shortener-admin"] })
+    ).toBe("admin")
   })
 
   it("gives no role when the claim is missing or unmapped", async () => {

@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { ApiTokenRole } from "./schemas"
 
 const tagValidator = z.string().trim().min(1).max(50)
 
@@ -21,4 +22,13 @@ export const createUrlSchema = editUrlSchema.extend({
 
 export const tagSchema = z.object({
   tagName: tagValidator,
+})
+
+export const createApiTokenSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Name is required")
+    .max(100, "Name must be at most 100 characters"),
+  role: ApiTokenRole,
 })

@@ -1,6 +1,7 @@
 import { headers } from "next/headers"
 import type { NextRequest } from "next/server"
 import * as client from "openid-client"
+import { apiTokenService } from "@/lib/api-tokens"
 import {
   clientConfig,
   getClientConfig,
@@ -55,6 +56,11 @@ export async function GET(request: NextRequest) {
   // the roles claim can be carried by either the ID token or the userinfo
   // response, so both are looked at (userinfo wins)
   session.role = resolveRole({ ...claims, ...userinfo }) ?? undefined
+
+  if (session.role === "viewer") {
+    // downgrade all API tokens to viewer role if the user is a viewer, to prevent privilege escalation
+    await apiTokenService.downgradeTokensForViewer(session.userInfo.sub)
+  }
 
   await session.save()
   return Response.redirect(clientConfig.postLoginRoute)

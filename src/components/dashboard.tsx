@@ -51,9 +51,15 @@ const TAG_VALUE_PREFIX = "tag:"
 export function Dashboard({
   user,
   userRole,
+  apiToken,
 }: {
   user?: { name: string; email: string }
   userRole: Role
+  /**
+   * Bearer token scoped to the current session, used to call the REST API
+   * on the user's behalf. Absent when authentication is disabled altogether.
+   */
+  apiToken?: string
 }) {
   // viewers get a read-only dashboard: creating, editing and deleting are
   // reserved to admins (and enforced server side by the actions themselves)
@@ -73,8 +79,8 @@ export function Dashboard({
     search: debouncedSearch || undefined,
   }
 
-  const { urls, pagination, loading, refetch } = useUrls(queryParams)
-  const { tags: allTags, refetch: refetchTags } = useAllTags()
+  const { urls, pagination, loading, refetch } = useUrls(queryParams, apiToken)
+  const { tags: allTags, refetch: refetchTags } = useAllTags(apiToken)
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialog, setEditDialog] = useState<EditDialogState>({ open: false })
