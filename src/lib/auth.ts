@@ -7,10 +7,10 @@ import { cookies } from "next/headers"
 import * as client from "openid-client"
 import { env } from "@/env"
 
-const domain = env.NEXT_PUBLIC_DOMAIN
-const appUrl = domain.startsWith("localhost")
-  ? `http://${env.NEXT_PUBLIC_DOMAIN}`
-  : `https://${env.NEXT_PUBLIC_DOMAIN}`
+const domain = env.DOMAIN
+const appUrl = domain?.startsWith("localhost")
+  ? `http://${env.DOMAIN}`
+  : `https://${env.DOMAIN}`
 
 // OIDC login is entirely optional: when any of these are left unset, auth is
 // disabled and `/admin` is served without a login gate.
