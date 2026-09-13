@@ -31,12 +31,12 @@ export function NoAccessPage({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <a href="/auth/logout" className="block">
-            <Button variant="outline" size="lg" className="w-full">
+          <Button asChild variant="outline" size="lg">
+            <a href="/auth/logout" className="block w-full">
               <LogOut />
               <span>Log out</span>
-            </Button>
-          </a>
+            </a>
+          </Button>
         </CardContent>
       </Card>
     </div>
