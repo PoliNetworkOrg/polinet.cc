@@ -1,6 +1,10 @@
 import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { PaginatedUrlsResponse, type UrlsQueryParams } from "@/lib/schemas"
+import {
+  AnalyticsResult,
+  PaginatedUrlsResponse,
+  type UrlsQueryParams,
+} from "@/lib/schemas"
 
 async function fetchUrls(params: UrlsQueryParams) {
   const queryParams = new URLSearchParams()
@@ -46,6 +50,29 @@ export function useUrls(params: UrlsQueryParams = {}) {
   return {
     urls: query.data?.urls ?? [],
     pagination: query.data?.pagination,
+    loading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+  }
+}
+
+async function fetchAnalytics(shortCode: string) {
+  const response = await fetch(`/api/urls/${shortCode}/analytics`)
+  if (!response.ok) {
+    throw new Error("Failed to fetch analytics")
+  }
+  return AnalyticsResult.parse(await response.json())
+}
+
+export function useAnalytics(shortCode: string | undefined, enabled: boolean) {
+  const query = useQuery({
+    queryKey: ["analytics", shortCode],
+    queryFn: () => fetchAnalytics(shortCode as string),
+    enabled: enabled && !!shortCode,
+    staleTime: 1000 * 30,
+  })
+  return {
+    analytics: query.data,
     loading: query.isLoading,
     error: query.error,
     refetch: query.refetch,
