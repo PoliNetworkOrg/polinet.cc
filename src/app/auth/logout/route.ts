@@ -1,8 +1,9 @@
 import { apiTokenService } from "@/lib/api-tokens"
-import { clientConfig, defaultSession, getSession } from "@/lib/auth"
+import { defaultSession, getOIDCConfig, getSession } from "@/lib/auth"
 
 export async function GET() {
-  if (!clientConfig) {
+  const config = getOIDCConfig()
+  if (!config) {
     return new Response("Not Found", { status: 404 })
   }
 
@@ -17,5 +18,5 @@ export async function GET() {
   session.codeVerifier = defaultSession.codeVerifier
   session.state = defaultSession.state
   await session.save()
-  return Response.redirect(`${clientConfig.postLogoutRedirectUri}/admin`)
+  return Response.redirect(`${config.postLogoutRedirectUri}/admin`)
 }

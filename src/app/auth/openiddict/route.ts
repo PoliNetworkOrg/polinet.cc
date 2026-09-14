@@ -3,14 +3,15 @@ import type { NextRequest } from "next/server"
 import * as client from "openid-client"
 import { apiTokenService } from "@/lib/api-tokens"
 import {
-  clientConfig,
   getClientConfig,
+  getOIDCConfig,
   getSession,
   resolveRole,
 } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
-  if (!clientConfig) {
+  const config = getOIDCConfig()
+  if (!config) {
     return new Response("Not Found", { status: 404 })
   }
 
@@ -66,5 +67,5 @@ export async function GET(request: NextRequest) {
   }
 
   await session.save()
-  return Response.redirect(clientConfig.postLoginRoute)
+  return Response.redirect(config.postLoginRoute)
 }

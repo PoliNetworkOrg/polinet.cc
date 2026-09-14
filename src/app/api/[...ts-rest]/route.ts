@@ -7,7 +7,7 @@ import { urlService } from "@/lib/url-service"
 /** Resolves the caller's role from the `Authorization` header, if any. */
 async function resolveRole(authorization?: string): Promise<Role | null> {
   // no OIDC configured for this deployment: the whole app is unauthenticated
-  if (!isAuthEnabled) return "admin"
+  if (!isAuthEnabled()) return "admin"
 
   const token = parseBearerToken(authorization)
   if (!token) return null

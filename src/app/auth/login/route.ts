@@ -1,8 +1,9 @@
 import * as client from "openid-client"
-import { clientConfig, getClientConfig, getSession } from "@/lib/auth"
+import { getClientConfig, getOIDCConfig, getSession } from "@/lib/auth"
 
 export async function GET() {
-  if (!clientConfig) {
+  const config = getOIDCConfig()
+  if (!config) {
     return new Response("Not Found", { status: 404 })
   }
 
@@ -11,10 +12,10 @@ export async function GET() {
   const codeChallenge = await client.calculatePKCECodeChallenge(codeVerifier)
   const openIdClientConfig = await getClientConfig()
   const parameters: Record<string, string> = {
-    redirect_uri: clientConfig.redirectUri,
-    scope: clientConfig.scope,
+    redirect_uri: config.redirectUri,
+    scope: config.scope,
     code_challenge: codeChallenge,
-    code_challenge_method: clientConfig.codeChallengeMethod,
+    code_challenge_method: config.codeChallengeMethod,
   }
   const state = client.randomState()
   parameters.state = state

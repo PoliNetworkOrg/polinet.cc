@@ -8,14 +8,14 @@ import { cookies } from "next/headers"
 import * as client from "openid-client"
 import { env } from "@/env"
 
-const domain = env.DOMAIN
+const domain = env.NEXT_PUBLIC_DOMAIN
 const appUrl = domain?.startsWith("localhost")
-  ? `http://${env.DOMAIN}`
-  : `https://${env.DOMAIN}`
+  ? `http://${domain}`
+  : `https://${domain}`
 
 // OIDC login is entirely optional: when any of these are left unset, auth is
 // disabled and `/admin` is served without a login gate.
-export const clientConfig =
+export const getOIDCConfig = () =>
   env.NEXT_PUBLIC_OIDC_URL &&
   env.NEXT_PUBLIC_OIDC_CLIENT_ID &&
   env.NEXT_PUBLIC_OIDC_SCOPE
@@ -33,7 +33,7 @@ export const clientConfig =
       }
     : undefined
 
-export const isAuthEnabled = Boolean(clientConfig)
+export const isAuthEnabled = () => Boolean(getOIDCConfig)
 
 /**
  * Internal roles: `admin` can read and modify, `viewer` can only read.
@@ -98,13 +98,11 @@ export async function getSession(): Promise<IronSession<SessionData>> {
 }
 
 export async function getClientConfig() {
-  if (!clientConfig) {
+  const config = getOIDCConfig()
+  if (!config) {
     throw new Error("OIDC is not configured")
   }
-  return await client.discovery(
-    new URL(clientConfig.url),
-    clientConfig.clientId
-  )
+  return await client.discovery(new URL(config.url), config.clientId)
 }
 
 /**
@@ -142,7 +140,7 @@ export function resolveRole(claims: Record<string, unknown>): Role | null {
  * disabled there is no user to speak of and everybody is an admin.
  */
 export async function getRole(): Promise<Role | null> {
-  if (!isAuthEnabled) return "admin"
+  if (!isAuthEnabled()) return "admin"
   const session = await getSession()
   if (!session.isLoggedIn || !session.userInfo) return null
   return session.role ?? null

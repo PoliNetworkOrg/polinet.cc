@@ -5,7 +5,7 @@ import { apiTokenService } from "@/lib/api-tokens"
 import { canRead, getSession, isAuthEnabled } from "@/lib/auth"
 
 export default async function AdminPage() {
-  if (!isAuthEnabled) {
+  if (!isAuthEnabled()) {
     return <Dashboard userRole="admin" />
   }
 
