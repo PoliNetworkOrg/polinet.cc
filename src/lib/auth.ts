@@ -1,4 +1,3 @@
-import { randomBytes } from "node:crypto"
 import {
   getIronSession,
   type IronSession,
@@ -76,7 +75,7 @@ export const defaultSession: SessionData = {
 }
 
 export const sessionOptions: SessionOptions = {
-  password: randomBytes(32).toString("hex"), // session encryption key is generated at startup, restarting the server invalidates all sessions
+  password: env.SESSION_SECRET,
   cookieName: "polinet_cc_session",
   cookieOptions: {
     // secure only works in `https` environments

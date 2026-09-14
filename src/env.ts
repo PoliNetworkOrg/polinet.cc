@@ -22,6 +22,7 @@ export const env = createEnv({
   server: {
     PORT: z.coerce.number().min(1).max(65535).default(PORT),
     NODE_ENV: z.enum(["development", "production"]).default("development"),
+    SESSION_SECRET: z.string().min(32),
     // PUBLIC_URL: z.string().default(`https://polinet.cc`),
     // LOG_LEVEL: z.string().default("DEBUG"),
     DOMAIN: domainSchema,
@@ -47,6 +48,7 @@ export const env = createEnv({
     NEXT_PUBLIC_OIDC_URL: process.env.NEXT_PUBLIC_OIDC_URL,
     NEXT_PUBLIC_OIDC_CLIENT_ID: process.env.NEXT_PUBLIC_OIDC_CLIENT_ID,
     NEXT_PUBLIC_OIDC_SCOPE: process.env.NEXT_PUBLIC_OIDC_SCOPE,
+    SESSION_SECRET: process.env.SESSION_SECRET,
     DB_HOST: process.env.DB_HOST,
     DB_PORT: process.env.DB_PORT,
     DB_USER: process.env.DB_USER,
