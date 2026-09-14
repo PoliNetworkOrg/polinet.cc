@@ -1,4 +1,3 @@
-import { randomBytes } from "node:crypto"
 import {
   getIronSession,
   type IronSession,
@@ -76,7 +75,7 @@ export const defaultSession: SessionData = {
 }
 
 export const sessionOptions: SessionOptions = {
-  password: randomBytes(32).toString("hex"), // session encryption key is generated at startup, restarting the server invalidates all sessions
+  password: env.SESSION_SECRET,
   cookieName: "polinet_cc_session",
   cookieOptions: {
     // secure only works in `https` environments
@@ -106,8 +105,9 @@ export async function getClientConfig() {
 }
 
 /**
- * Normalizes a claim value into the list of role names it carries. Providers
- * hand roles over either as an array or as a single separated string.
+ * Normalizes a claim value into the authorization values it carries. Most
+ * providers return roles directly, while PoliNetwork's identity claim wraps
+ * them in a `permissions` property.
  */
 function claimToRoleNames(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -115,6 +115,9 @@ function claimToRoleNames(value: unknown): string[] {
   }
   if (typeof value === "string") {
     return value.split(/[\s,]+/).filter(Boolean)
+  }
+  if (typeof value === "object" && value !== null && "permissions" in value) {
+    return claimToRoleNames(value.permissions)
   }
   return []
 }

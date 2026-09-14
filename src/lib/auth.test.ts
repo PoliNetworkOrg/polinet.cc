@@ -19,6 +19,13 @@ const FULL_MAPPING = {
   ROLE_VIEWER: "shortener-viewer",
 }
 
+const IDENTITY_CLAIM = "https://auth.polinetwork.org/api/identity"
+const IDENTITY_MAPPING = {
+  ROLES_CLAIM: IDENTITY_CLAIM,
+  ROLE_ADMIN: "membership:read",
+  ROLE_VIEWER: "student:verified",
+}
+
 afterEach(() => {
   vi.unstubAllEnvs()
 })
@@ -57,6 +64,38 @@ describe("resolveRole", () => {
     expect(
       resolveRole({ roles: ["shortener-viewer", "shortener-admin"] })
     ).toBe("admin")
+  })
+
+  it("maps PoliNetwork identity permissions onto internal roles", async () => {
+    const { resolveRole } = await importAuth(IDENTITY_MAPPING)
+
+    expect(
+      resolveRole({
+        [IDENTITY_CLAIM]: {
+          states: ["socio", "student"],
+          permissions: ["membership:read", "student:verified"],
+          telegramId: "123456789",
+        },
+      })
+    ).toBe("admin")
+    expect(
+      resolveRole({
+        [IDENTITY_CLAIM]: {
+          states: ["student"],
+          permissions: ["student:verified"],
+          telegramId: null,
+        },
+      })
+    ).toBe("viewer")
+    expect(
+      resolveRole({
+        [IDENTITY_CLAIM]: {
+          states: [],
+          permissions: [],
+          telegramId: null,
+        },
+      })
+    ).toBeNull()
   })
 
   it("gives no role when the claim is missing or unmapped", async () => {

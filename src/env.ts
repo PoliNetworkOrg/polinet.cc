@@ -22,6 +22,7 @@ export const env = createEnv({
   server: {
     PORT: z.coerce.number().min(1).max(65535).default(PORT),
     NODE_ENV: z.enum(["development", "production"]).default("development"),
+    SESSION_SECRET: z.string().min(32),
     // PUBLIC_URL: z.string().default(`https://polinet.cc`),
     // LOG_LEVEL: z.string().default("DEBUG"),
     DOMAIN: domainSchema,
@@ -32,9 +33,9 @@ export const env = createEnv({
     DB_NAME: z.string().min(3).default("url_shortener"),
     DB_URL: z.string().url().optional(),
     // Role mapping: ROLES_CLAIM is the OIDC claim (from the ID token or the
-    // userinfo endpoint) holding the user's roles, ROLE_ADMIN/ROLE_VIEWER are
-    // the claim values mapped to the internal roles. When any of the three is
-    // left unset the mapping is disabled and every logged in user is an admin.
+    // userinfo endpoint) holding roles or an object with a permissions array.
+    // ROLE_ADMIN/ROLE_VIEWER are the values mapped to the internal roles. When
+    // any of the three is left unset, every logged in user is an admin.
     ROLES_CLAIM: z.string().optional(),
     ROLE_ADMIN: z.string().optional(),
     ROLE_VIEWER: z.string().optional(),
@@ -47,6 +48,7 @@ export const env = createEnv({
     NEXT_PUBLIC_OIDC_URL: process.env.NEXT_PUBLIC_OIDC_URL,
     NEXT_PUBLIC_OIDC_CLIENT_ID: process.env.NEXT_PUBLIC_OIDC_CLIENT_ID,
     NEXT_PUBLIC_OIDC_SCOPE: process.env.NEXT_PUBLIC_OIDC_SCOPE,
+    SESSION_SECRET: process.env.SESSION_SECRET,
     DB_HOST: process.env.DB_HOST,
     DB_PORT: process.env.DB_PORT,
     DB_USER: process.env.DB_USER,
