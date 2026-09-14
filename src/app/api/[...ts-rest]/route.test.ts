@@ -27,6 +27,13 @@ vi.mock("@/lib/db", () => ({
   getPool: () => pool,
 }))
 
+// This test covers route decoding, not authorization. Keep authentication
+// disabled regardless of which OIDC variables CI provides.
+vi.mock("@/lib/auth", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/auth")>()
+  return { ...actual, isAuthEnabled: () => false }
+})
+
 describe("DELETE /api/urls/:shortCode/tags/:tagName", () => {
   beforeEach(async () => {
     vi.resetModules()
