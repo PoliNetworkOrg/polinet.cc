@@ -45,7 +45,7 @@ vi.mock("@/lib/db", () => ({
 // bearer token; `canRead`/`canWrite` are the real implementations.
 vi.mock("@/lib/auth", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/auth")>()
-  return { ...actual, isAuthEnabled: true }
+  return { ...actual, isAuthEnabled: () => true }
 })
 
 const OWNER = { sub: "user-1", name: "Ada Lovelace", email: "ada@example.com" }
