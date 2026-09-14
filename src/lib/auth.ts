@@ -32,7 +32,7 @@ export const getOIDCConfig = () =>
       }
     : undefined
 
-export const isAuthEnabled = () => Boolean(getOIDCConfig)
+export const isAuthEnabled = () => Boolean(getOIDCConfig())
 
 /**
  * Internal roles: `admin` can read and modify, `viewer` can only read.
