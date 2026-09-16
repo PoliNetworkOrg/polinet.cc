@@ -76,7 +76,7 @@
   "pnpm": {
     "peerDependencyRules": {
       "allowedVersions": {
-        "next": "^16.0.0"
+        "@ts-rest/serverless@3.52.1>next": "^16.0.0"
       }
     }
   }
