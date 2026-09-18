@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { useDebounce } from "use-debounce"
 import logo from "@/assets/logo.png"
 import { AccountButton } from "@/components/account-button"
+import { useDomain } from "@/components/domain-provider"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -32,7 +33,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { env } from "@/env"
 import { useAllTags, useUrls } from "@/hooks/urls"
 import { deleteUrl } from "@/lib/actions"
 import type { Role } from "@/lib/auth"
@@ -65,6 +65,7 @@ export function Dashboard({
   // reserved to admins (and enforced server side by the actions themselves)
   const canModify = userRole === "admin"
 
+  const domain = useDomain()
   const [searchInput, setSearchInput] = useState("")
   const [debouncedSearch] = useDebounce(searchInput, 300)
   const [qp, setQueryParams] = useState<UrlsQueryParams>({
@@ -153,7 +154,7 @@ export function Dashboard({
         <div className="flex items-center gap-4">
           <Image src={logo} alt="PoliNetwork Logo" className="h-16 w-16" />
           <div className="gap-2">
-            <h1 className="text-3xl font-bold">{env.NEXT_PUBLIC_DOMAIN}</h1>
+            <h1 className="text-3xl font-bold">{domain}</h1>
             <p className="text-muted-foreground max-md:text-sm">
               PoliNetwork's URL shortener dashboard
             </p>
@@ -315,7 +316,7 @@ export function Dashboard({
                   <MobileRow
                     key={url.id}
                     url={url}
-                    onCopy={(url) => copyToClipboard(makeShortUrl(url))}
+                    onCopy={(url) => copyToClipboard(makeShortUrl(domain, url))}
                     onQrCode={(url) => setQrDialog({ open: true, url })}
                     onDelete={
                       canModify
@@ -348,7 +349,9 @@ export function Dashboard({
                     <UrlRecordRow
                       key={url.id}
                       url={url}
-                      onCopy={(url) => copyToClipboard(makeShortUrl(url))}
+                      onCopy={(url) =>
+                        copyToClipboard(makeShortUrl(domain, url))
+                      }
                       onQrCode={(url) => setQrDialog({ open: true, url })}
                       onDelete={
                         canModify

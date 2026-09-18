@@ -8,6 +8,7 @@ import {
   Star,
   Trash2,
 } from "lucide-react"
+import { useDomain } from "@/components/domain-provider"
 import type { UrlRecord } from "@/lib/schemas"
 import { copyToClipboard, getTagColor, makeShortUrl } from "@/lib/utils"
 import { Button } from "./ui/button"
@@ -59,7 +60,8 @@ export function MobileRow({
   onEdit,
   onQrCode,
 }: UrlRecordRowProps) {
-  const shortUrl = makeShortUrl(url)
+  const domain = useDomain()
+  const shortUrl = makeShortUrl(domain, url)
   return (
     <div className="flex flex-col gap-1 border rounded-md py-2 px-4">
       <div className="flex justify-start gap-2 items-center">
@@ -134,7 +136,8 @@ export function MobileRow({
 }
 
 export function UrlRecordRow({ url, ...props }: UrlRecordRowProps) {
-  const shortUrl = makeShortUrl(url)
+  const domain = useDomain()
+  const shortUrl = makeShortUrl(domain, url)
   return (
     <TableRow key={url.id} className="max-sm:hidden">
       <TableCell>

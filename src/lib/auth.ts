@@ -7,7 +7,9 @@ import { cookies } from "next/headers"
 import * as client from "openid-client"
 import { env } from "@/env"
 
-const domain = env.NEXT_PUBLIC_DOMAIN
+const domain = env.DOMAIN
+// `?.` because env validation is skipped in tests and during `next build`,
+// which leaves the schema defaults unapplied
 const appUrl = domain?.startsWith("localhost")
   ? `http://${domain}`
   : `https://${domain}`
@@ -15,14 +17,12 @@ const appUrl = domain?.startsWith("localhost")
 // OIDC login is entirely optional: when any of these are left unset, auth is
 // disabled and `/admin` is served without a login gate.
 export const getOIDCConfig = () =>
-  env.NEXT_PUBLIC_OIDC_URL &&
-  env.NEXT_PUBLIC_OIDC_CLIENT_ID &&
-  env.NEXT_PUBLIC_OIDC_SCOPE
+  env.OIDC_URL && env.OIDC_CLIENT_ID && env.OIDC_SCOPE
     ? {
-        url: env.NEXT_PUBLIC_OIDC_URL,
-        audience: env.NEXT_PUBLIC_OIDC_URL,
-        clientId: env.NEXT_PUBLIC_OIDC_CLIENT_ID,
-        scope: env.NEXT_PUBLIC_OIDC_SCOPE,
+        url: env.OIDC_URL,
+        audience: env.OIDC_URL,
+        clientId: env.OIDC_CLIENT_ID,
+        scope: env.OIDC_SCOPE,
         redirectUri: `${appUrl}/auth/openiddict`,
         postLogoutRedirectUri: appUrl,
         responseType: "code",

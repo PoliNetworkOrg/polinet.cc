@@ -5,6 +5,7 @@ import { getZodConstraint, parseWithZod } from "@conform-to/zod"
 import { X } from "lucide-react"
 import { useActionState, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
+import { useDomain } from "@/components/domain-provider"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -40,6 +41,7 @@ export function EditUrlDialog({
   onSuccess,
   ...state
 }: EditUrlDialogProps) {
+  const domain = useDomain()
   const [{ error, lastResult }, action, pending] = useActionState(editUrl, {
     error: null,
     lastResult: null,
@@ -105,7 +107,7 @@ export function EditUrlDialog({
           <DialogHeader>
             <DialogTitle>Edit Short URL</DialogTitle>
             <DialogDescription>
-              Update the destination URL for {makeShortUrl(state.url)}.
+              Update the destination URL for {makeShortUrl(domain, state.url)}.
             </DialogDescription>
           </DialogHeader>
           <form {...getFormProps(form, {})} action={action}>

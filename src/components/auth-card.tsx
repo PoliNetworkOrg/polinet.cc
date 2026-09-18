@@ -32,9 +32,7 @@ export function AuthCard({
           />
           <CardTitle className="flex min-w-0 max-w-full items-center justify-center gap-2 text-2xl">
             {titleIcon}
-            <span className="min-w-0 break-words">
-              {env.NEXT_PUBLIC_DOMAIN}
-            </span>
+            <span className="min-w-0 break-words">{env.DOMAIN}</span>
           </CardTitle>
           <CardDescription className="w-full min-w-0 break-words">
             {description}

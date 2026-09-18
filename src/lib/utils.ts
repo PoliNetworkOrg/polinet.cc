@@ -1,7 +1,6 @@
 import { type ClassValue, clsx } from "clsx"
 import { toast } from "sonner"
 import { twMerge } from "tailwind-merge"
-import { env } from "@/env"
 import type { UrlRecord } from "./schemas"
 
 export function cn(...inputs: ClassValue[]) {
@@ -36,8 +35,8 @@ export const copyToClipboard = async (text: string) => {
   }
 }
 
-export function makeShortUrl(url: UrlRecord): string {
-  return `https://${env.NEXT_PUBLIC_DOMAIN}/${url.short_code}`
+export function makeShortUrl(domain: string, url: UrlRecord): string {
+  return `https://${domain}/${url.short_code}`
 }
 
 const TAG_PALETTE: { bg: string; text: string; border: string }[] = [
