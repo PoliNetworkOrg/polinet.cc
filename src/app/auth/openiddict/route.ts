@@ -1,4 +1,3 @@
-import { headers } from "next/headers"
 import type { NextRequest } from "next/server"
 import * as client from "openid-client"
 import { apiTokenService } from "@/lib/api-tokens"
@@ -17,14 +16,12 @@ export async function GET(request: NextRequest) {
 
   const session = await getSession()
   const openIdClientConfig = await getClientConfig()
-  const headerList = await headers()
-  const host =
-    headerList.get("x-forwarded-host") || headerList.get("host") || "localhost"
-
-  const protocol = headerList.get("x-forwarded-proto") || "https"
-  const currentUrl = new URL(
-    `${protocol}://${host}${request.nextUrl.pathname}${request.nextUrl.search}`
-  )
+  // openid-client sends this URL, minus the query, as the token request's
+  // redirect_uri, which must match the one used at login exactly. Building it
+  // from the configured redirect URI keeps it independent of proxy headers:
+  // behind Cloudflare Tunnel and Traefik, X-Forwarded-Proto arrives as `http`.
+  const currentUrl = new URL(config.redirectUri)
+  currentUrl.search = request.nextUrl.search
 
   const tokenSet = await client.authorizationCodeGrant(
     openIdClientConfig,
