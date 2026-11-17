@@ -1,5 +1,6 @@
 import { notFound, RedirectType, redirect } from "next/navigation"
 import { urlService } from "@/lib/url-service"
+import { isHttpUrl } from "@/lib/validations"
 
 interface Props {
   params: Promise<{
@@ -12,7 +13,7 @@ export default async function RedirectPage({ params }: Props) {
 
   // matches the primary code or an alias
   const target = await urlService.resolveClickTarget(shortCode)
-  if (!target) {
+  if (!target || !isHttpUrl(target.originalUrl)) {
     notFound()
   }
 

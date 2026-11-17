@@ -2,7 +2,7 @@ import { createNextHandler } from "@ts-rest/serverless/next"
 import { apiTokenService, parseBearerToken } from "@/lib/api-tokens"
 import { canRead, canWrite, isAuthEnabled, type Role } from "@/lib/auth"
 import { contract } from "@/lib/contract"
-import { urlService } from "@/lib/url-service"
+import { CodeConflictError, urlService } from "@/lib/url-service"
 
 /** Resolves the caller's role from the `Authorization` header, if any. */
 async function resolveRole(authorization?: string): Promise<Role | null> {
@@ -49,6 +49,17 @@ async function authorize(
   return { ok: true }
 }
 
+/**
+ * A code that is already taken is the caller's mistake (400); anything else
+ * is rethrown and answered as a 500 without exposing the database error.
+ */
+function conflictResponse(error: unknown) {
+  if (error instanceof CodeConflictError) {
+    return { status: 400 as const, body: { error: error.message } }
+  }
+  throw error
+}
+
 const handler = createNextHandler(
   contract,
   {
@@ -86,13 +97,7 @@ const handler = createNextHandler(
           body: urlRecord,
         }
       } catch (error) {
-        return {
-          status: 400,
-          body: {
-            error:
-              error instanceof Error ? error.message : "Failed to create URL",
-          },
-        }
+        return conflictResponse(error)
       }
     },
     getUrl: async ({ params, headers }) => {
@@ -133,14 +138,7 @@ const handler = createNextHandler(
           body: urlRecord,
         }
       } catch (error) {
-        // an alias that collides with another URL's code
-        return {
-          status: 400,
-          body: {
-            error:
-              error instanceof Error ? error.message : "Failed to update URL",
-          },
-        }
+        return conflictResponse(error)
       }
     },
     deleteUrl: async ({ params, headers }) => {
@@ -171,19 +169,19 @@ const handler = createNextHandler(
         }
       }
       try {
-        await urlService.addAlias(urlRecord.id, body.aliasCode)
+        const added = await urlService.addAlias(urlRecord.id, body.aliasCode)
+        if (!added) {
+          return {
+            status: 404,
+            body: { error: "URL not found" },
+          }
+        }
         return {
           status: 201,
           body: undefined,
         }
       } catch (error) {
-        return {
-          status: 400,
-          body: {
-            error:
-              error instanceof Error ? error.message : "Failed to add alias",
-          },
-        }
+        return conflictResponse(error)
       }
     },
     removeAlias: async ({ params, headers }) => {

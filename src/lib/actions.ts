@@ -4,7 +4,7 @@ import type { SubmissionResult } from "@conform-to/react"
 import { parseWithZod } from "@conform-to/zod"
 import { canRead, canWrite, getRole } from "./auth"
 import type { AliasStatsResult, UrlRecord } from "./schemas"
-import { urlService } from "./url-service"
+import { CodeConflictError, urlService } from "./url-service"
 import { aliasSchema, createUrlSchema, editUrlSchema } from "./validations"
 
 const FORBIDDEN = "You don't have permission to modify URLs"
@@ -62,7 +62,7 @@ export async function createUrl(
       return withFormError(
         result,
         submission,
-        error instanceof Error ? error.message : "Failed to create URL"
+        errorMessage(error, "Failed to create URL")
       )
     }
   }
@@ -97,7 +97,7 @@ export async function editUrl(
       return withFormError(
         result,
         submission,
-        error instanceof Error ? error.message : "Failed to update URL"
+        errorMessage(error, "Failed to update URL")
       )
     }
   }
@@ -123,9 +123,19 @@ export async function deleteUrl(
 
 type ActionResult<T = null> = { error: string } | { error: null; data: T }
 
+/**
+ * Shows a code conflict to the user as is. Anything else is logged and
+ * replaced by `fallback`, so database errors don't reach the browser.
+ */
+function errorMessage(error: unknown, fallback: string): string {
+  if (error instanceof CodeConflictError) return error.message
+  console.error(error)
+  return fallback
+}
+
 function failure(error: unknown, fallback: string): { error: string } {
-  // thrown errors reach the client redacted in production, so return them
-  return { error: error instanceof Error ? error.message : fallback }
+  // returned rather than thrown: thrown errors reach the client redacted
+  return { error: errorMessage(error, fallback) }
 }
 
 export async function getAliasStats(
@@ -152,8 +162,8 @@ export async function addAlias(
     return { error: parsed.error.issues[0]?.message ?? "Invalid alias" }
   }
   try {
-    await urlService.addAlias(urlId, parsed.data.aliasCode)
-    return { error: null, data: null }
+    const added = await urlService.addAlias(urlId, parsed.data.aliasCode)
+    return added ? { error: null, data: null } : { error: "URL not found" }
   } catch (error) {
     return failure(error, "Failed to add alias")
   }

@@ -119,7 +119,7 @@ export const contract = c.router(
     promoteAlias: {
       method: "POST",
       path: "/urls/:shortCode/aliases/:aliasCode/promote",
-      body: z.object({}),
+      body: c.noBody(),
       responses: {
         200: URLRecord,
         403: APIError,

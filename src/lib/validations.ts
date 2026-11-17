@@ -10,6 +10,16 @@ export const shortCodeValidator = z
     "Short code can only contain letters, numbers, hyphens and underscores"
   )
 
+/** Redirect targets must be http(s); `z.string().url()` also lets `javascript:` through. */
+export function isHttpUrl(value: string): boolean {
+  try {
+    const { protocol } = new URL(value)
+    return protocol === "http:" || protocol === "https:"
+  } catch {
+    return false
+  }
+}
+
 const tagValidator = z.string().trim().min(1).max(50)
 
 export const createUrlSchema = z.object({

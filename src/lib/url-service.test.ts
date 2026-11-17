@@ -1,6 +1,6 @@
 import type { Pool } from "pg"
-import { newDb } from "pg-mem"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { newTestDb } from "../test/pg-mem"
 
 const SCHEMA_SQL = `
   CREATE TABLE urls (
@@ -11,7 +11,9 @@ const SCHEMA_SQL = `
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     click_count INTEGER DEFAULT 0,
-    last_clicked_at TIMESTAMP WITH TIME ZONE DEFAULT NULL
+    last_clicked_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    primary_last_clicked_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    removed_alias_click_count INTEGER NOT NULL DEFAULT 0
   );
 
   CREATE TABLE url_aliases (
@@ -37,7 +39,7 @@ vi.mock("./db", () => ({
 }))
 
 async function freshPool() {
-  const mem = newDb()
+  const mem = newTestDb()
   const pg = mem.adapters.createPg()
   const p = new pg.Pool() as unknown as Pool
   await p.query(SCHEMA_SQL)
@@ -348,6 +350,110 @@ describe("UrlService", () => {
       alias_code: "abc",
       click_count: 1, // abc's prior direct clicks, carried over
     })
+  })
+
+  it("keeps a removed alias's clicks out of the primary code's count", async () => {
+    const { UrlService } = await import("./url-service")
+    const service = new UrlService()
+    const record = await service.createShortUrl(
+      "https://example.com",
+      "abc",
+      [],
+      ["wiki", "docs"]
+    )
+    await service.incrementClickCount("abc")
+    await service.incrementClickCount("wiki")
+    await service.incrementClickCount("wiki")
+    await service.incrementClickCount("docs")
+
+    expect(await service.removeAlias(record.id, "wiki")).toBe(true)
+    // reconciling on update removes "docs" the same way
+    await service.updateUrl("abc", "https://example.com", [], { aliases: [] })
+
+    const stats = await service.getAliasStats("abc")
+    expect(stats).toMatchObject({
+      urlClickCount: 1,
+      removedAliasClickCount: 3,
+      aliases: [],
+    })
+    expect((await service.getUrlByShortCode("abc"))?.click_count).toBe(4)
+
+    // promoting afterwards must not hand the removed clicks to the old primary
+    await service.addAlias(record.id, "new")
+    const promoted = await service.promoteAlias(record.id, "new")
+    expect(promoted?.short_code).toBe("new")
+    const after = await service.getAliasStats("new")
+    expect(after?.aliases).toMatchObject([
+      { alias_code: "abc", click_count: 1 },
+    ])
+    expect(after?.urlClickCount).toBe(0)
+  })
+
+  it("tracks the primary code's last click apart from its aliases", async () => {
+    const { UrlService } = await import("./url-service")
+    const service = new UrlService()
+    const record = await service.createShortUrl(
+      "https://example.com",
+      "abc",
+      [],
+      ["wiki"]
+    )
+
+    await service.incrementClickCount("wiki")
+    let stats = await service.getAliasStats("abc")
+    expect(stats?.urlLastClickedAt).toBeNull()
+    expect(stats?.aliases[0].last_clicked_at).not.toBeNull()
+    expect(
+      (await service.getUrlByShortCode("abc"))?.last_clicked_at
+    ).not.toBeNull()
+
+    // promotion swaps the timestamps along with the codes
+    await service.promoteAlias(record.id, "wiki")
+    stats = await service.getAliasStats("wiki")
+    expect(stats?.urlLastClickedAt).not.toBeNull()
+    expect(stats?.aliases).toMatchObject([
+      { alias_code: "abc", last_clicked_at: null },
+    ])
+  })
+
+  it("claims an alias under a code lock inside the URL's transaction", async () => {
+    const { UrlService } = await import("./url-service")
+    const service = new UrlService()
+    const record = await service.createShortUrl("https://example.com", "abc")
+
+    const statements: string[] = []
+    const connect = pool.connect.bind(pool)
+    vi.spyOn(pool, "connect").mockImplementation((async () => {
+      const client = await connect()
+      const query = client.query.bind(client) as (...args: unknown[]) => unknown
+      client.query = ((sql: string, ...rest: unknown[]) => {
+        statements.push(sql.trim().split(/\s+/).slice(0, 2).join(" "))
+        return query(sql, ...rest)
+      }) as typeof client.query
+      return client
+    }) as never)
+
+    expect(await service.addAlias(record.id, "wiki")).toBe(true)
+    expect(statements[0]).toBe("BEGIN")
+    const lock = statements.indexOf("SELECT pg_advisory_xact_lock($1,")
+    expect(lock).toBeGreaterThan(0)
+    expect(statements.indexOf("INSERT INTO")).toBeGreaterThan(lock)
+    expect(statements.at(-1)).toBe("COMMIT")
+
+    expect(await service.addAlias(9999, "docs")).toBe(false)
+  })
+
+  it("only reports code collisions as CodeConflictError", async () => {
+    const { CodeConflictError, UrlService } = await import("./url-service")
+    const service = new UrlService()
+    await service.createShortUrl("https://example.com", "abc", [], ["wiki"])
+
+    await expect(
+      service.createShortUrl("https://other.com", "wiki")
+    ).rejects.toBeInstanceOf(CodeConflictError)
+    await expect(service.renameShortCode("abc", "wiki")).rejects.toBeInstanceOf(
+      CodeConflictError
+    )
   })
 
   it("creates a URL with tags and lists all distinct tags", async () => {

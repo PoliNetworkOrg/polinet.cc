@@ -1,7 +1,7 @@
 "use client"
 
 import { ArrowUpToLine, GitBranch, Trash2, X } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import {
   addAlias,
@@ -42,11 +42,16 @@ export function AliasStatsDialog({
   const [loading, setLoading] = useState(false)
   const [aliasInput, setAliasInput] = useState("")
   const [pending, setPending] = useState<string | null>(null)
+  // Bumped whenever the dialog opens, closes or switches URL, so a response
+  // for a previous URL can't overwrite or close the current one.
+  const session = useRef(0)
 
   const refresh = async (shortCode: string) => {
+    const current = session.current
     setLoading(true)
     try {
       const result = await getAliasStats(shortCode)
+      if (current !== session.current) return
       if (result.error !== null) {
         setStats(null)
         toast.error(result.error)
@@ -54,16 +59,20 @@ export function AliasStatsDialog({
         setStats(result.data)
       }
     } catch {
-      toast.error("Failed to load alias stats")
+      if (current === session.current) {
+        toast.error("Failed to load alias stats")
+      }
     } finally {
-      setLoading(false)
+      if (current === session.current) setLoading(false)
     }
   }
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset only when the dialog opens for a URL, not on every stats refresh
   useEffect(() => {
+    session.current++
     if (open && url) {
       setAliasInput("")
+      setStats(null)
       refresh(url.short_code)
     }
   }, [open, url?.id])
@@ -73,16 +82,18 @@ export function AliasStatsDialog({
   const handleAdd = async () => {
     const trimmed = aliasInput.trim()
     if (!trimmed) return
+    const current = session.current
     setPending("add")
     try {
       const { error } = await addAlias(url.id, trimmed)
+      if (current !== session.current) return
       if (error !== null) {
         toast.error(error)
         return
       }
       setAliasInput("")
-      await refresh(url.short_code)
       onChanged()
+      await refresh(url.short_code)
     } catch {
       toast.error("Failed to add alias")
     } finally {
@@ -91,15 +102,17 @@ export function AliasStatsDialog({
   }
 
   const handleRemove = async (aliasCode: string) => {
+    const current = session.current
     setPending(aliasCode)
     try {
       const { error } = await removeAlias(url.id, aliasCode)
+      if (current !== session.current) return
       if (error !== null) {
         toast.error(error)
         return
       }
-      await refresh(url.short_code)
       onChanged()
+      await refresh(url.short_code)
     } catch {
       toast.error("Failed to remove alias")
     } finally {
@@ -108,14 +121,17 @@ export function AliasStatsDialog({
   }
 
   const handlePromote = async (aliasCode: string) => {
+    const current = session.current
     setPending(aliasCode)
     try {
       const { error } = await promoteAlias(url.id, aliasCode)
+      // the change happened either way, so the list must be refetched
+      if (error === null) onChanged()
+      if (current !== session.current) return
       if (error !== null) {
         toast.error(error)
       } else {
         toast.success(`/${aliasCode} is now the primary code`)
-        onChanged()
         onClose()
       }
     } catch {
@@ -127,7 +143,7 @@ export function AliasStatsDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-mono">
             <GitBranch className="h-4 w-4 shrink-0 text-muted-foreground" />/
@@ -185,6 +201,15 @@ export function AliasStatsDialog({
                 {relativeTime(stats.urlLastClickedAt)}
               </span>
             </div>
+            {stats.removedAliasClickCount > 0 && (
+              <div className="flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground">
+                <span className="flex-1 italic">removed aliases</span>
+                <span className="w-20 text-right tabular-nums">
+                  {stats.removedAliasClickCount} clicks
+                </span>
+                <span className="w-24" />
+              </div>
+            )}
             {stats.aliases.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
                 No aliases yet.

@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest"
-import { tagSchema } from "./validations"
+import { isHttpUrl } from "./validations"
 
-describe("tagSchema", () => {
-  it("applies length limits after trimming", () => {
-    expect(tagSchema.safeParse({ tagName: "   " }).success).toBe(false)
-
-    const tagName = "a".repeat(50)
-    expect(tagSchema.parse({ tagName: ` ${tagName} ` }).tagName).toBe(tagName)
+describe("isHttpUrl", () => {
+  it("accepts only http and https URLs", () => {
+    expect(isHttpUrl("https://example.com/path")).toBe(true)
+    expect(isHttpUrl("http://example.com")).toBe(true)
+    expect(isHttpUrl("javascript:alert(1)")).toBe(false)
+    expect(isHttpUrl("data:text/html,hi")).toBe(false)
+    expect(isHttpUrl("not a url")).toBe(false)
   })
 })

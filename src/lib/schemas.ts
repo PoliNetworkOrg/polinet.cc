@@ -30,6 +30,8 @@ export type AliasRecord = z.infer<typeof AliasRecord>
 export const AliasStatsResult = z.object({
   urlClickCount: z.number().int().nonnegative(),
   urlLastClickedAt: z.coerce.date().nullable(),
+  /** clicks on aliases that have since been removed */
+  removedAliasClickCount: z.number().int().nonnegative(),
   aliases: z.array(AliasRecord),
 })
 export type AliasStatsResult = z.infer<typeof AliasStatsResult>

@@ -24,7 +24,13 @@ CREATE TABLE IF NOT EXISTS url_tags (
 
 CREATE INDEX IF NOT EXISTS idx_url_tags_tag_name ON url_tags(tag_name);
 
+-- last_clicked_at is the last click on any route, primary_last_clicked_at the
+-- last one on the primary code. Clicks on aliases that were removed stay in
+-- click_count and are tallied in removed_alias_click_count, so they aren't
+-- mistaken for clicks on the primary code.
 ALTER TABLE urls ADD COLUMN IF NOT EXISTS last_clicked_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+ALTER TABLE urls ADD COLUMN IF NOT EXISTS primary_last_clicked_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+ALTER TABLE urls ADD COLUMN IF NOT EXISTS removed_alias_click_count INTEGER NOT NULL DEFAULT 0;
 
 -- Alternate short codes that redirect to the same URL. urls.click_count stays
 -- the total across the primary code and every alias; each alias also keeps
