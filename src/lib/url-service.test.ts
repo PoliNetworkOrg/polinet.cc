@@ -138,37 +138,67 @@ describe("UrlService", () => {
     expect(page1.pagination.totalPages).toBe(2)
   })
 
-  it("creates a URL with aliases and resolves them like the primary code", async () => {
+  it("creates a URL with aliases and resolves them for redirects", async () => {
     const { UrlService } = await import("./url-service")
     const service = new UrlService()
 
-    const record = await service.createShortUrl("https://example.com", "abc", [
-      "wiki",
-      "docs",
-    ])
+    const record = await service.createShortUrl(
+      "https://example.com",
+      "abc",
+      [],
+      ["wiki", "docs"]
+    )
     expect(record.aliases).toEqual(["wiki", "docs"])
 
-    const viaAlias = await service.getUrlByShortCode("wiki")
-    expect(viaAlias?.id).toBe(record.id)
-    expect(viaAlias?.original_url).toBe("https://example.com")
+    const viaAlias = await service.resolveClickTarget("wiki")
+    expect(viaAlias).toEqual({
+      urlId: record.id,
+      originalUrl: "https://example.com",
+    })
+    expect(await service.resolveClickTarget("nope")).toBeNull()
+  })
+
+  it("addresses URLs by primary code only outside the redirect", async () => {
+    const { UrlService } = await import("./url-service")
+    const service = new UrlService()
+    await service.createShortUrl("https://example.com", "abc", [], ["wiki"])
+
+    // GET, PUT and DELETE /urls/:shortCode must agree on what they address
+    expect(await service.getUrlByShortCode("wiki")).toBeNull()
+    expect(await service.updateUrl("wiki", "https://other.com")).toBeNull()
+    expect(await service.deleteUrl("wiki")).toBe(false)
   })
 
   it("rejects an alias that collides with an existing short code or alias", async () => {
     const { UrlService } = await import("./url-service")
     const service = new UrlService()
-    const a = await service.createShortUrl("https://a.com", "abc", ["wiki"])
+    const a = await service.createShortUrl("https://a.com", "abc", [], ["wiki"])
     await service.createShortUrl("https://b.com", "def")
 
     await expect(service.addAlias(a.id, "def")).rejects.toThrow(/already/)
     await expect(service.addAlias(a.id, "wiki")).rejects.toThrow(/already/)
   })
 
+  it("rejects a new short code that is already another URL's alias", async () => {
+    const { UrlService } = await import("./url-service")
+    const service = new UrlService()
+    await service.createShortUrl("https://a.com", "abc", [], ["wiki"])
+
+    await expect(
+      service.createShortUrl("https://b.com", "wiki")
+    ).rejects.toThrow(/already exists/)
+    expect((await service.getAllUrls({})).pagination.total).toBe(1)
+  })
+
   it("removes an alias", async () => {
     const { UrlService } = await import("./url-service")
     const service = new UrlService()
-    const record = await service.createShortUrl("https://example.com", "abc", [
-      "wiki",
-    ])
+    const record = await service.createShortUrl(
+      "https://example.com",
+      "abc",
+      [],
+      ["wiki"]
+    )
 
     expect(await service.removeAlias(record.id, "wiki")).toBe(true)
     expect(await service.getAliasesForUrl(record.id)).toEqual([])
@@ -177,19 +207,32 @@ describe("UrlService", () => {
   it("reconciles aliases to an explicit list on update", async () => {
     const { UrlService } = await import("./url-service")
     const service = new UrlService()
-    await service.createShortUrl("https://example.com", "abc", ["wiki"])
+    await service.createShortUrl("https://example.com", "abc", [], ["wiki"])
 
-    const updated = await service.updateUrl("abc", "https://example.com", [
-      "docs",
-    ])
+    const updated = await service.updateUrl("abc", "https://example.com", [], {
+      aliases: ["docs"],
+    })
     expect(updated?.aliases).toEqual(["docs"])
+  })
+
+  it("keeps aliases when an update leaves them out", async () => {
+    const { UrlService } = await import("./url-service")
+    const service = new UrlService()
+    await service.createShortUrl("https://example.com", "abc", [], ["wiki"])
+
+    // the pre-alias signature, as API clients written before aliases call it
+    const updated = await service.updateUrl("abc", "https://updated.com", [
+      "work",
+    ])
+    expect(updated?.aliases).toEqual(["wiki"])
+    expect(updated?.tags).toEqual(["work"])
   })
 
   it("renames the primary short code, rejecting collisions", async () => {
     const { UrlService } = await import("./url-service")
     const service = new UrlService()
     await service.createShortUrl("https://example.com", "abc")
-    await service.createShortUrl("https://other.com", "taken")
+    await service.createShortUrl("https://other.com", "taken", [], ["alias"])
 
     const renamed = await service.renameShortCode("abc", "xyz")
     expect(renamed?.short_code).toBe("xyz")
@@ -198,12 +241,58 @@ describe("UrlService", () => {
     await expect(service.renameShortCode("xyz", "taken")).rejects.toThrow(
       /already exists/
     )
+    await expect(service.renameShortCode("xyz", "alias")).rejects.toThrow(
+      /already exists/
+    )
+    expect(await service.renameShortCode("missing", "other")).toBeNull()
+  })
+
+  it("renames and updates in one transaction", async () => {
+    const { UrlService } = await import("./url-service")
+    const service = new UrlService()
+    await service.createShortUrl("https://example.com", "abc")
+    await service.createShortUrl("https://other.com", "taken")
+
+    const updated = await service.updateUrl("abc", "https://new.com", [], {
+      newShortCode: "xyz",
+      aliases: ["wiki"],
+    })
+    expect(updated).toMatchObject({
+      short_code: "xyz",
+      original_url: "https://new.com",
+      aliases: ["wiki"],
+    })
+
+    // The alias collides, so the rename must be rolled back with it. pg-mem
+    // ignores ROLLBACK, so check that both ran in the same transaction.
+    const statements: string[] = []
+    const connect = pool.connect.bind(pool)
+    vi.spyOn(pool, "connect").mockImplementation((async () => {
+      const client = await connect()
+      const query = client.query.bind(client) as (...args: unknown[]) => unknown
+      client.query = ((sql: string, ...rest: unknown[]) => {
+        statements.push(sql.trim().split(/\s+/).slice(0, 3).join(" "))
+        return query(sql, ...rest)
+      }) as typeof client.query
+      return client
+    }) as never)
+
+    await expect(
+      service.updateUrl("xyz", "https://newer.com", [], {
+        newShortCode: "renamed",
+        aliases: ["taken"],
+      })
+    ).rejects.toThrow(/already exists/)
+    expect(statements[0]).toBe("BEGIN")
+    expect(statements).toContain("UPDATE urls SET")
+    expect(statements.at(-1)).toBe("ROLLBACK")
+    expect(statements).not.toContain("COMMIT")
   })
 
   it("suggests promotion when renaming to one of the URL's own aliases", async () => {
     const { UrlService } = await import("./url-service")
     const service = new UrlService()
-    await service.createShortUrl("https://example.com", "abc", ["wiki"])
+    await service.createShortUrl("https://example.com", "abc", [], ["wiki"])
 
     await expect(service.renameShortCode("abc", "wiki")).rejects.toThrow(
       /set as primary/
@@ -213,9 +302,12 @@ describe("UrlService", () => {
   it("tracks aggregate and per-alias click counts, and derives direct clicks", async () => {
     const { UrlService } = await import("./url-service")
     const service = new UrlService()
-    const record = await service.createShortUrl("https://example.com", "abc", [
-      "wiki",
-    ])
+    const record = await service.createShortUrl(
+      "https://example.com",
+      "abc",
+      [],
+      ["wiki"]
+    )
 
     await service.incrementClickCount("abc")
     await service.incrementClickCount("abc")
@@ -236,9 +328,12 @@ describe("UrlService", () => {
   it("promotes an alias to become the primary code, preserving click history", async () => {
     const { UrlService } = await import("./url-service")
     const service = new UrlService()
-    const record = await service.createShortUrl("https://example.com", "abc", [
-      "wiki",
-    ])
+    const record = await service.createShortUrl(
+      "https://example.com",
+      "abc",
+      [],
+      ["wiki"]
+    )
     await service.incrementClickCount("abc") // 1 direct click on primary
     await service.incrementClickCount("wiki") // 1 click on alias
 
@@ -259,13 +354,12 @@ describe("UrlService", () => {
     const { UrlService } = await import("./url-service")
     const service = new UrlService()
 
-    const record = await service.createShortUrl(
-      "https://example.com",
-      "abc",
-      [],
-      ["work", "personal"]
-    )
+    const record = await service.createShortUrl("https://example.com", "abc", [
+      "work",
+      "personal",
+    ])
     expect(record.tags).toEqual(["personal", "work"])
+    expect(record.aliases).toEqual([])
     expect(await service.getAllTags()).toEqual(["personal", "work"])
   })
 
@@ -284,38 +378,36 @@ describe("UrlService", () => {
   it("reconciles tags to an explicit list on update, including clearing them", async () => {
     const { UrlService } = await import("./url-service")
     const service = new UrlService()
-    await service.createShortUrl("https://example.com", "abc", [], ["work"])
+    await service.createShortUrl("https://example.com", "abc", ["work"])
 
-    const updated = await service.updateUrl(
-      "abc",
-      "https://example.com",
-      [],
-      ["personal"]
-    )
+    const updated = await service.updateUrl("abc", "https://example.com", [
+      "personal",
+    ])
     expect(updated?.tags).toEqual(["personal"])
 
-    const cleared = await service.updateUrl(
-      "abc",
-      "https://example.com",
-      [],
-      []
-    )
+    const cleared = await service.updateUrl("abc", "https://example.com", [])
     expect(cleared?.tags).toEqual([])
   })
 
   it("filters URLs by tag", async () => {
     const { UrlService } = await import("./url-service")
     const service = new UrlService()
-    await service.createShortUrl("https://example.com/one", "one", [], ["work"])
-    await service.createShortUrl(
-      "https://example.com/two",
-      "two",
-      [],
-      ["personal"]
-    )
+    await service.createShortUrl("https://example.com/one", "one", ["work"])
+    await service.createShortUrl("https://example.com/two", "two", ["personal"])
 
     const filtered = await service.getAllUrls({ tag: "work" })
     expect(filtered.urls.map((u) => u.short_code)).toEqual(["one"])
+  })
+
+  it("finds URLs by alias when searching", async () => {
+    const { UrlService } = await import("./url-service")
+    const service = new UrlService()
+    await service.createShortUrl("https://example.com/one", "one", [], ["wiki"])
+    await service.createShortUrl("https://example.com/two", "two")
+
+    const found = await service.getAllUrls({ search: "wik" })
+    expect(found.urls.map((u) => u.short_code)).toEqual(["one"])
+    expect(found.pagination.total).toBe(1)
   })
 
   it("keeps aliases and tags independent when both are set on the same URL", async () => {
@@ -325,13 +417,14 @@ describe("UrlService", () => {
     const record = await service.createShortUrl(
       "https://example.com",
       "abc",
-      ["wiki"],
-      ["work"]
+      ["work"],
+      ["wiki"]
     )
     expect(record.aliases).toEqual(["wiki"])
     expect(record.tags).toEqual(["work"])
 
-    const viaAlias = await service.getUrlByShortCode("wiki")
-    expect(viaAlias?.tags).toEqual(["work"])
+    const found = await service.getUrlByShortCode("abc")
+    expect(found?.aliases).toEqual(["wiki"])
+    expect(found?.tags).toEqual(["work"])
   })
 })

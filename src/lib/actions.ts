@@ -2,30 +2,51 @@
 
 import type { SubmissionResult } from "@conform-to/react"
 import { parseWithZod } from "@conform-to/zod"
-import { canWrite, getRole } from "./auth"
+import { canRead, canWrite, getRole } from "./auth"
 import type { AliasStatsResult, UrlRecord } from "./schemas"
 import { urlService } from "./url-service"
-import { createUrlSchema, editUrlSchema } from "./validations"
+import { aliasSchema, createUrlSchema, editUrlSchema } from "./validations"
 
 const FORBIDDEN = "You don't have permission to modify URLs"
 
-export async function createUrl(
-  prevState: {
-    error: string | null
-    lastResult: SubmissionResult<string[]> | null
+type FormActionState = {
+  error: string | null
+  lastResult: SubmissionResult<string[]> | null
+}
+
+/**
+ * A valid form replies with status "success" even when the server-side work
+ * then fails, which the dialogs read as success and close. Reply with the
+ * failure as a form error instead.
+ */
+function withFormError(
+  state: FormActionState,
+  submission: {
+    reply: (options: { formErrors: string[] }) => SubmissionResult<string[]>
   },
+  error: string
+): FormActionState {
+  return {
+    ...state,
+    error,
+    lastResult: submission.reply({ formErrors: [error] }),
+  }
+}
+
+export async function createUrl(
+  // required by useActionState; every submission starts from a clean state
+  _prevState: FormActionState,
   formData: FormData
-) {
+): Promise<FormActionState> {
   const submission = parseWithZod(formData, { schema: createUrlSchema })
 
-  const result: typeof prevState = {
-    ...prevState,
+  const result: FormActionState = {
+    error: null,
     lastResult: submission.reply(),
   }
 
   if (!canWrite(await getRole())) {
-    result.error = FORBIDDEN
-    return result
+    return withFormError(result, submission, FORBIDDEN)
   }
 
   if (submission.status === "success") {
@@ -33,48 +54,51 @@ export async function createUrl(
       await urlService.createShortUrl(
         submission.value.url,
         submission.value.shortCode,
-        submission.value.aliases,
-        submission.value.tags
+        submission.value.tags,
+        submission.value.aliases
       )
       result.error = null
     } catch (error) {
-      result.error =
+      return withFormError(
+        result,
+        submission,
         error instanceof Error ? error.message : "Failed to create URL"
+      )
     }
   }
   return result
 }
 
 export async function editUrl(
-  prevState: {
-    error: string | null
-    lastResult: SubmissionResult<string[]> | null
-  },
+  // required by useActionState; every submission starts from a clean state
+  _prevState: FormActionState,
   formData: FormData
-) {
+): Promise<FormActionState> {
   const submission = parseWithZod(formData, { schema: editUrlSchema })
-  const result: typeof prevState = {
-    ...prevState,
+  const result: FormActionState = {
+    error: null,
     lastResult: submission.reply(),
   }
 
   if (!canWrite(await getRole())) {
-    result.error = FORBIDDEN
-    return result
+    return withFormError(result, submission, FORBIDDEN)
   }
 
   if (submission.status === "success") {
     try {
       const { currentShortCode, shortCode, url, aliases, tags } =
         submission.value
-      if (shortCode !== currentShortCode) {
-        await urlService.renameShortCode(currentShortCode, shortCode)
-      }
-      await urlService.updateUrl(shortCode, url, aliases, tags)
-      result.error = null
+      const updated = await urlService.updateUrl(currentShortCode, url, tags, {
+        aliases,
+        newShortCode: shortCode,
+      })
+      if (!updated) return withFormError(result, submission, "URL not found")
     } catch (error) {
-      result.error =
+      return withFormError(
+        result,
+        submission,
         error instanceof Error ? error.message : "Failed to update URL"
+      )
     }
   }
   return result
@@ -97,29 +121,68 @@ export async function deleteUrl(
   }
 }
 
+type ActionResult<T = null> = { error: string } | { error: null; data: T }
+
+function failure(error: unknown, fallback: string): { error: string } {
+  // thrown errors reach the client redacted in production, so return them
+  return { error: error instanceof Error ? error.message : fallback }
+}
+
 export async function getAliasStats(
   shortCode: string
-): Promise<AliasStatsResult | null> {
-  return urlService.getAliasStats(shortCode)
+): Promise<ActionResult<AliasStatsResult>> {
+  if (!canRead(await getRole())) {
+    return { error: "You don't have permission to view URLs" }
+  }
+  try {
+    const stats = await urlService.getAliasStats(shortCode)
+    return stats ? { error: null, data: stats } : { error: "URL not found" }
+  } catch (error) {
+    return failure(error, "Failed to load alias stats")
+  }
 }
 
-export async function addAliasAction(
+export async function addAlias(
   urlId: number,
   aliasCode: string
-): Promise<void> {
-  await urlService.addAlias(urlId, aliasCode)
+): Promise<ActionResult> {
+  if (!canWrite(await getRole())) return { error: FORBIDDEN }
+  const parsed = aliasSchema.safeParse({ aliasCode: aliasCode.trim() })
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid alias" }
+  }
+  try {
+    await urlService.addAlias(urlId, parsed.data.aliasCode)
+    return { error: null, data: null }
+  } catch (error) {
+    return failure(error, "Failed to add alias")
+  }
 }
 
-export async function removeAliasAction(
+export async function removeAlias(
   urlId: number,
   aliasCode: string
-): Promise<void> {
-  await urlService.removeAlias(urlId, aliasCode)
+): Promise<ActionResult> {
+  if (!canWrite(await getRole())) return { error: FORBIDDEN }
+  try {
+    const removed = await urlService.removeAlias(urlId, aliasCode)
+    return removed ? { error: null, data: null } : { error: "Alias not found" }
+  } catch (error) {
+    return failure(error, "Failed to remove alias")
+  }
 }
 
-export async function promoteAliasAction(
+export async function promoteAlias(
   urlId: number,
   aliasCode: string
-): Promise<UrlRecord | null> {
-  return urlService.promoteAlias(urlId, aliasCode)
+): Promise<ActionResult<UrlRecord>> {
+  if (!canWrite(await getRole())) return { error: FORBIDDEN }
+  try {
+    const promoted = await urlService.promoteAlias(urlId, aliasCode)
+    return promoted
+      ? { error: null, data: promoted }
+      : { error: "Alias not found" }
+  } catch (error) {
+    return failure(error, "Failed to promote alias")
+  }
 }

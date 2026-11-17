@@ -4,10 +4,10 @@ import { ArrowUpToLine, GitBranch, Trash2, X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import {
-  addAliasAction,
+  addAlias,
   getAliasStats,
-  promoteAliasAction,
-  removeAliasAction,
+  promoteAlias,
+  removeAlias,
 } from "@/lib/actions"
 import type { AliasStatsResult, UrlRecord } from "@/lib/schemas"
 import { relativeTime } from "@/lib/utils"
@@ -46,7 +46,13 @@ export function AliasStatsDialog({
   const refresh = async (shortCode: string) => {
     setLoading(true)
     try {
-      setStats(await getAliasStats(shortCode))
+      const result = await getAliasStats(shortCode)
+      if (result.error !== null) {
+        setStats(null)
+        toast.error(result.error)
+      } else {
+        setStats(result.data)
+      }
     } catch {
       toast.error("Failed to load alias stats")
     } finally {
@@ -69,12 +75,16 @@ export function AliasStatsDialog({
     if (!trimmed) return
     setPending("add")
     try {
-      await addAliasAction(url.id, trimmed)
+      const { error } = await addAlias(url.id, trimmed)
+      if (error !== null) {
+        toast.error(error)
+        return
+      }
       setAliasInput("")
       await refresh(url.short_code)
       onChanged()
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to add alias")
+    } catch {
+      toast.error("Failed to add alias")
     } finally {
       setPending(null)
     }
@@ -83,7 +93,11 @@ export function AliasStatsDialog({
   const handleRemove = async (aliasCode: string) => {
     setPending(aliasCode)
     try {
-      await removeAliasAction(url.id, aliasCode)
+      const { error } = await removeAlias(url.id, aliasCode)
+      if (error !== null) {
+        toast.error(error)
+        return
+      }
       await refresh(url.short_code)
       onChanged()
     } catch {
@@ -96,16 +110,16 @@ export function AliasStatsDialog({
   const handlePromote = async (aliasCode: string) => {
     setPending(aliasCode)
     try {
-      const promoted = await promoteAliasAction(url.id, aliasCode)
-      if (!promoted) {
-        toast.error("Alias not found")
+      const { error } = await promoteAlias(url.id, aliasCode)
+      if (error !== null) {
+        toast.error(error)
       } else {
         toast.success(`/${aliasCode} is now the primary code`)
         onChanged()
         onClose()
       }
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to promote alias")
+    } catch {
+      toast.error("Failed to promote alias")
     } finally {
       setPending(null)
     }

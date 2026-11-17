@@ -10,11 +10,12 @@ interface Props {
 export default async function RedirectPage({ params }: Props) {
   const { shortCode } = await params
 
-  const urlRecord = await urlService.getUrlByShortCode(shortCode)
-  if (!urlRecord) {
+  // matches the primary code or an alias
+  const target = await urlService.resolveClickTarget(shortCode)
+  if (!target) {
     notFound()
   }
 
   urlService.incrementClickCount(shortCode).catch(console.error)
-  redirect(urlRecord.original_url, RedirectType.push)
+  redirect(target.originalUrl, RedirectType.push)
 }

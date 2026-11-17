@@ -6,7 +6,12 @@ import {
   PaginatedUrlsResponse,
   URLRecord,
 } from "./schemas"
-import { aliasSchema, createUrlSchema, tagSchema } from "./validations"
+import {
+  aliasSchema,
+  createUrlSchema,
+  tagSchema,
+  updateUrlSchema,
+} from "./validations"
 
 const c = initContract()
 
@@ -57,6 +62,7 @@ export const contract = c.router(
       body: createUrlSchema,
       responses: {
         201: URLRecord,
+        400: APIError,
         403: APIError,
       },
       summary: "Create a new short URL",
@@ -65,9 +71,10 @@ export const contract = c.router(
     updateUrl: {
       method: "PUT",
       path: "/urls/:shortCode",
-      body: createUrlSchema,
+      body: updateUrlSchema,
       responses: {
         200: URLRecord,
+        400: APIError,
         403: APIError,
         404: APIError,
       },

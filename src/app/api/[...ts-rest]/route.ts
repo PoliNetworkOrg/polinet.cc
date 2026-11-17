@@ -78,8 +78,8 @@ const handler = createNextHandler(
         const urlRecord = await urlService.createShortUrl(
           body.url,
           body.shortCode,
-          body.aliases,
-          body.tags
+          body.tags,
+          body.aliases
         )
         return {
           status: 201,
@@ -115,21 +115,32 @@ const handler = createNextHandler(
       const auth = await authorize(headers, canWrite)
       if (!auth.ok) return auth.response
 
-      const urlRecord = await urlService.updateUrl(
-        params.shortCode,
-        body.url,
-        body.aliases,
-        body.tags
-      )
-      if (!urlRecord) {
-        return {
-          status: 404,
-          body: { error: "URL not found" },
+      try {
+        const urlRecord = await urlService.updateUrl(
+          params.shortCode,
+          body.url,
+          body.tags,
+          { aliases: body.aliases }
+        )
+        if (!urlRecord) {
+          return {
+            status: 404,
+            body: { error: "URL not found" },
+          }
         }
-      }
-      return {
-        status: 200,
-        body: urlRecord,
+        return {
+          status: 200,
+          body: urlRecord,
+        }
+      } catch (error) {
+        // an alias that collides with another URL's code
+        return {
+          status: 400,
+          body: {
+            error:
+              error instanceof Error ? error.message : "Failed to update URL",
+          },
+        }
       }
     },
     deleteUrl: async ({ params, headers }) => {

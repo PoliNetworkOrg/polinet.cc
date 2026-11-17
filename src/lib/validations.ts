@@ -21,6 +21,15 @@ export const createUrlSchema = z.object({
 
 export type CreateUrlInput = z.infer<typeof createUrlSchema>
 
+// PUT /urls/:shortCode. Unlike tags, a missing `aliases` keeps the existing
+// ones, so clients written before aliases existed don't delete them.
+export const updateUrlSchema = createUrlSchema.extend({
+  aliases: z
+    .array(shortCodeValidator)
+    .optional()
+    .describe("Replaces the URL's aliases. Leave out to keep them unchanged."),
+})
+
 export const editUrlSchema = createUrlSchema.extend({
   // Hidden field: the code the row is currently stored under, used to locate
   // it. `shortCode` is the (possibly renamed) value the user submitted.

@@ -19,8 +19,8 @@ export class UrlService {
   async createShortUrl(
     originalUrl: string,
     customShortCode?: string,
-    aliases?: string[],
-    tags?: string[]
+    tags?: string[],
+    aliases?: string[]
   ): Promise<UrlRecord> {
     const client = await this.pool.connect()
 
@@ -31,19 +31,14 @@ export class UrlService {
       let isCustom = true
 
       if (customShortCode) {
-        const existingUrl = await client.query(
-          "SELECT 1 FROM urls WHERE short_code = $1",
-          [customShortCode]
-        )
-        if (existingUrl.rows[0]) {
-          throw new Error(
-            "Short code already exists. Please choose a different one."
-          )
-        }
+        await this.assertCodeAvailable(client, customShortCode)
         shortCode = customShortCode
       } else {
         shortCode = nanoid(8)
         isCustom = false
+        // urls.short_code is UNIQUE, but nothing in the database stops a
+        // random code from matching an existing alias
+        await this.assertCodeAvailable(client, shortCode)
       }
 
       const result = await client.query(
@@ -56,8 +51,8 @@ export class UrlService {
       )
       const urlRecord = result.rows[0]
 
-      await this.syncAliases(client, urlRecord.id, aliases ?? [])
       await this.syncTags(client, urlRecord.id, tags ?? [])
+      await this.syncAliases(client, urlRecord.id, aliases ?? [])
       const fullRecord = await this.attachAll(client, urlRecord)
 
       await client.query("COMMIT")
@@ -70,20 +65,26 @@ export class UrlService {
     }
   }
 
-  /** Looks up a URL by its primary short_code OR an alias code */
+  /**
+   * Looks up a URL by its primary short code only. The API and the dashboard
+   * address URLs by primary code, so that GET, PUT and DELETE agree on which
+   * record `/urls/:shortCode` is; aliases only resolve in the redirect
+   * (`resolveClickTarget`).
+   */
   async getUrlByShortCode(shortCode: string): Promise<UrlRecord | null> {
     const result = await this.pool.query(
-      `SELECT u.* FROM urls u
-       WHERE u.short_code = $1
-          OR u.id = (SELECT url_id FROM url_aliases WHERE alias_code = $1 LIMIT 1)
-       LIMIT 1`,
+      "SELECT * FROM urls WHERE short_code = $1",
       [shortCode]
     )
     if (!result.rows[0]) return null
     return this.attachAll(this.pool, result.rows[0])
   }
 
-  /** Resolve a code (primary or alias) to the destination for a redirect. */
+  /**
+   * Resolves a code (primary or alias) to the destination for a redirect.
+   * Aliases are root-level codes only: when namespaces land (#45) this must
+   * keep matching root URLs only.
+   */
   async resolveClickTarget(
     code: string
   ): Promise<{ urlId: number; originalUrl: string } | null> {
@@ -139,7 +140,13 @@ export class UrlService {
     const fromAndWhere = `
       FROM urls u
       LEFT JOIN url_tags mt ON mt.url_id = u.id AND mt.tag_name = $4
-      WHERE ($1 OR (u.original_url ILIKE $2 OR u.short_code ILIKE $2))
+      WHERE ($1 OR (
+          u.original_url ILIKE $2
+          OR u.short_code ILIKE $2
+          OR u.id IN (
+            SELECT url_id FROM url_aliases WHERE alias_code ILIKE $2
+          )
+        ))
         AND ($3 OR u.is_custom = TRUE)
         AND ($4::text IS NULL OR mt.tag_name IS NOT NULL)
     `
@@ -173,12 +180,17 @@ export class UrlService {
     }
   }
 
-  /** Updates the destination URL and reconciles aliases/tags to exactly match */
+  /**
+   * Updates the destination URL and reconciles tags to exactly match `tags`.
+   * `aliases` is reconciled the same way when given and left untouched when
+   * omitted, so API clients that predate aliases don't wipe them. A
+   * `newShortCode` renames the primary code in the same transaction.
+   */
   async updateUrl(
     shortCode: string,
     originalUrl: string,
-    aliases: string[] = [],
-    tags: string[] = []
+    tags: string[] = [],
+    options: { aliases?: string[]; newShortCode?: string } = {}
   ): Promise<UrlRecord | null> {
     const client = await this.pool.connect()
 
@@ -193,6 +205,11 @@ export class UrlService {
         await client.query("COMMIT")
         return null
       }
+      const urlId: number = lockedUrl.rows[0].id
+
+      if (options.newShortCode && options.newShortCode !== shortCode) {
+        await this.renameWithClient(client, urlId, options.newShortCode)
+      }
 
       const result = await client.query(
         `
@@ -201,11 +218,13 @@ export class UrlService {
           WHERE id = $2
           RETURNING *
         `,
-        [originalUrl, lockedUrl.rows[0].id]
+        [originalUrl, urlId]
       )
 
-      await this.syncAliases(client, result.rows[0].id, aliases)
-      await this.syncTags(client, result.rows[0].id, tags)
+      await this.syncTags(client, urlId, tags)
+      if (options.aliases) {
+        await this.syncAliases(client, urlId, options.aliases)
+      }
       const fullRecord = await this.attachAll(client, result.rows[0])
 
       await client.query("COMMIT")
@@ -223,30 +242,81 @@ export class UrlService {
     oldCode: string,
     newCode: string
   ): Promise<UrlRecord | null> {
-    if (oldCode === newCode) return this.getUrlByShortCode(oldCode)
+    const client = await this.pool.connect()
+    try {
+      await client.query("BEGIN")
+      const locked = await client.query(
+        "SELECT id FROM urls WHERE short_code = $1 FOR UPDATE",
+        [oldCode]
+      )
+      if (!locked.rows[0]) {
+        await client.query("ROLLBACK")
+        return null
+      }
+      const urlId: number = locked.rows[0].id
+      if (oldCode !== newCode) {
+        await this.renameWithClient(client, urlId, newCode)
+      }
+      const result = await client.query("SELECT * FROM urls WHERE id = $1", [
+        urlId,
+      ])
+      const record = await this.attachAll(client, result.rows[0])
+      await client.query("COMMIT")
+      return record
+    } catch (error) {
+      await client.query("ROLLBACK")
+      throw error
+    } finally {
+      client.release()
+    }
+  }
 
-    const url = await this.getUrlByShortCode(oldCode)
-    if (!url) return null
-
-    if (url.aliases.includes(newCode)) {
+  private async renameWithClient(
+    client: QueryClient,
+    urlId: number,
+    newCode: string
+  ): Promise<void> {
+    const ownAlias = await client.query(
+      "SELECT 1 FROM url_aliases WHERE url_id = $1 AND alias_code = $2",
+      [urlId, newCode]
+    )
+    if (ownAlias.rows[0]) {
       throw new Error(
         `"${newCode}" is already an alias of this URL — use "set as primary" instead of renaming.`
       )
     }
+    await this.assertCodeAvailable(client, newCode)
+    await client.query(
+      `UPDATE urls SET short_code = $1, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $2`,
+      [newCode, urlId]
+    )
+  }
 
-    const conflict = await this.getUrlByShortCode(newCode)
-    if (conflict) {
+  /**
+   * Throws when `code` is already a primary short code or an alias. Every
+   * root-level code (new URL, alias, rename) is claimed through here, so this
+   * is where namespace scoping and reserved names (#45) belong.
+   *
+   * The two tables can't share a UNIQUE constraint, so two concurrent
+   * requests claiming the same code in different tables can both pass.
+   */
+  private async assertCodeAvailable(
+    client: QueryClient,
+    code: string
+  ): Promise<void> {
+    const existing = await client.query(
+      `SELECT 1 FROM urls WHERE short_code = $1
+       UNION ALL
+       SELECT 1 FROM url_aliases WHERE alias_code = $1
+       LIMIT 1`,
+      [code]
+    )
+    if (existing.rows[0]) {
       throw new Error(
-        "Short code already exists. Please choose a different one."
+        `Short code "${code}" already exists as a short code or alias. Please choose a different one.`
       )
     }
-
-    const result = await this.pool.query(
-      `UPDATE urls SET short_code = $1, updated_at = CURRENT_TIMESTAMP
-       WHERE short_code = $2 RETURNING *`,
-      [newCode, oldCode]
-    )
-    return this.attachAll(this.pool, result.rows[0])
   }
 
   async deleteUrl(shortCode: string): Promise<boolean> {
@@ -416,18 +486,7 @@ export class UrlService {
     urlId: number,
     aliasCode: string
   ): Promise<void> {
-    const existing = await client.query(
-      `SELECT 1 FROM urls WHERE short_code = $1
-       UNION
-       SELECT 1 FROM url_aliases WHERE alias_code = $1
-       LIMIT 1`,
-      [aliasCode]
-    )
-    if (existing.rows[0]) {
-      throw new Error(
-        `"${aliasCode}" is already in use as a short code or alias.`
-      )
-    }
+    await this.assertCodeAvailable(client, aliasCode)
     await client.query(
       "INSERT INTO url_aliases (url_id, alias_code) VALUES ($1, $2)",
       [urlId, aliasCode]
