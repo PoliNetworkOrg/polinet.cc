@@ -18,6 +18,13 @@ export class CodeConflictError extends Error {
   name = "CodeConflictError"
 }
 
+/** Where a code points: the URL, and the alias row when it isn't the primary. */
+export type ClickTarget = {
+  urlId: number
+  originalUrl: string
+  aliasId: number | null
+}
+
 // pg_advisory_xact_lock(int4, int4): the first key keeps these locks apart
 // from any other advisory lock on the database
 const CODE_LOCK_CLASS = 0x706e6363 // "pncc"
@@ -106,22 +113,31 @@ export class UrlService {
 
   /**
    * Resolves a code (primary or alias) to the destination for a redirect.
-   * Aliases are root-level codes only: when namespaces land (#45) this must
-   * keep matching root URLs only.
+   * A primary code wins if a code ever ends up in both tables. Aliases are
+   * root-level codes only: when namespaces land (#45) this must keep
+   * matching root URLs only.
    */
-  async resolveClickTarget(
-    code: string
-  ): Promise<{ urlId: number; originalUrl: string } | null> {
+  async resolveClickTarget(code: string): Promise<ClickTarget | null> {
     const result = await this.pool.query(
-      `SELECT u.id, u.original_url FROM urls u
-       WHERE u.short_code = $1
-          OR u.id = (SELECT url_id FROM url_aliases WHERE alias_code = $1 LIMIT 1)
+      `SELECT * FROM (
+         SELECT id AS url_id, original_url, NULL::int AS alias_id, 0 AS rank
+         FROM urls WHERE short_code = $1
+         UNION ALL
+         SELECT u.id, u.original_url, a.id, 1
+         FROM url_aliases a JOIN urls u ON u.id = a.url_id
+         WHERE a.alias_code = $1
+       ) matches
+       ORDER BY rank
        LIMIT 1`,
       [code]
     )
     const row = result.rows[0]
     if (!row) return null
-    return { urlId: row.id, originalUrl: row.original_url }
+    return {
+      urlId: row.url_id,
+      originalUrl: row.original_url,
+      aliasId: row.alias_id,
+    }
   }
 
   async getAllUrls(
@@ -214,7 +230,14 @@ export class UrlService {
     shortCode: string,
     originalUrl: string,
     tags: string[] = [],
-    options: { aliases?: string[]; newShortCode?: string } = {}
+    options: {
+      /** replaces the aliases; left out, they are kept */
+      aliases?: string[]
+      /** applied to the current aliases, for clients holding a stale list */
+      addAliases?: string[]
+      removeAliases?: string[]
+      newShortCode?: string
+    } = {}
   ): Promise<UrlRecord | null> {
     const client = await this.pool.connect()
 
@@ -234,6 +257,7 @@ export class UrlService {
       await this.lockCodes(client, [
         ...(options.newShortCode ? [options.newShortCode] : []),
         ...(options.aliases ?? []),
+        ...(options.addAliases ?? []),
       ])
       if (options.newShortCode && options.newShortCode !== shortCode) {
         await this.renameWithClient(client, urlId, options.newShortCode)
@@ -252,6 +276,21 @@ export class UrlService {
       await this.syncTags(client, urlId, tags)
       if (options.aliases) {
         await this.syncAliases(client, urlId, options.aliases)
+      }
+      if (options.addAliases || options.removeAliases) {
+        const current = new Set(
+          await this.getAliasesForUrlWithClient(client, urlId)
+        )
+        for (const alias of options.addAliases ?? []) {
+          if (!current.has(alias)) {
+            await this.addAliasWithClient(client, urlId, alias)
+          }
+        }
+        for (const alias of options.removeAliases ?? []) {
+          if (current.has(alias)) {
+            await this.removeAliasWithClient(client, urlId, alias)
+          }
+        }
       }
       const fullRecord = await this.attachAll(client, result.rows[0])
 
@@ -315,7 +354,8 @@ export class UrlService {
     }
     await this.assertCodeAvailable(client, newCode)
     await client.query(
-      `UPDATE urls SET short_code = $1, updated_at = CURRENT_TIMESTAMP
+      `UPDATE urls
+       SET short_code = $1, is_custom = TRUE, updated_at = CURRENT_TIMESTAMP
        WHERE id = $2`,
       [newCode, urlId]
     )
@@ -373,50 +413,50 @@ export class UrlService {
     return (result.rowCount ?? 0) > 0
   }
 
-  /**
-   * Counts a click on `code`: the URL's total always, plus the alias's own
-   * counter or the primary code's last-click time. The alias is re-checked
-   * under lock so both counters land on the same URL even if it is removed
-   * or promoted meanwhile.
-   */
+  /** Resolves `code` and records a click on it, if it exists. */
   async incrementClickCount(code: string): Promise<void> {
+    const target = await this.resolveClickTarget(code)
+    if (target) await this.recordClick(target)
+  }
+
+  /**
+   * Counts a click on a resolved target: the URL's total always, plus the
+   * alias's own counter or the primary code's last-click time. Addressed by
+   * id, not code, so it still hits one row once codes are only unique per
+   * namespace (#45). A primary click is a single statement, as the redirect
+   * shares the pool.
+   */
+  async recordClick(target: ClickTarget): Promise<void> {
+    if (target.aliasId === null) {
+      await this.pool.query(
+        `UPDATE urls
+         SET click_count = click_count + 1,
+             last_clicked_at = CURRENT_TIMESTAMP,
+             primary_last_clicked_at = CURRENT_TIMESTAMP
+         WHERE id = $1`,
+        [target.urlId]
+      )
+      return
+    }
+
+    // The urls row first, then the alias (the lock order everywhere else).
+    // If the alias was removed or moved meanwhile, the click isn't counted.
     const client = await this.pool.connect()
     try {
       await client.query("BEGIN")
-      const alias = await client.query(
-        "SELECT url_id FROM url_aliases WHERE alias_code = $1",
-        [code]
+      await client.query(
+        `UPDATE urls
+         SET click_count = click_count + 1, last_clicked_at = CURRENT_TIMESTAMP
+         WHERE id = $1`,
+        [target.urlId]
       )
-      if (alias.rows[0]) {
-        const urlId: number = alias.rows[0].url_id
-        await client.query("SELECT 1 FROM urls WHERE id = $1 FOR UPDATE", [
-          urlId,
-        ])
-        const counted = await client.query(
-          `UPDATE url_aliases
-           SET click_count = click_count + 1, last_clicked_at = CURRENT_TIMESTAMP
-           WHERE alias_code = $1 AND url_id = $2`,
-          [code, urlId]
-        )
-        if ((counted.rowCount ?? 0) > 0) {
-          await client.query(
-            `UPDATE urls
-             SET click_count = click_count + 1, last_clicked_at = CURRENT_TIMESTAMP
-             WHERE id = $1`,
-            [urlId]
-          )
-        }
-      } else {
-        await client.query(
-          `UPDATE urls
-           SET click_count = click_count + 1,
-               last_clicked_at = CURRENT_TIMESTAMP,
-               primary_last_clicked_at = CURRENT_TIMESTAMP
-           WHERE short_code = $1`,
-          [code]
-        )
-      }
-      await client.query("COMMIT")
+      const counted = await client.query(
+        `UPDATE url_aliases
+         SET click_count = click_count + 1, last_clicked_at = CURRENT_TIMESTAMP
+         WHERE id = $1 AND url_id = $2`,
+        [target.aliasId, target.urlId]
+      )
+      await client.query((counted.rowCount ?? 0) > 0 ? "COMMIT" : "ROLLBACK")
     } catch (e) {
       await client.query("ROLLBACK")
       throw e
@@ -580,7 +620,7 @@ export class UrlService {
       await client.query("DELETE FROM url_aliases WHERE id = $1", [oldAliasId])
       const updated = await client.query(
         `UPDATE urls
-         SET short_code = $1, primary_last_clicked_at = $2,
+         SET short_code = $1, is_custom = TRUE, primary_last_clicked_at = $2,
              updated_at = CURRENT_TIMESTAMP
          WHERE id = $3
          RETURNING *`,

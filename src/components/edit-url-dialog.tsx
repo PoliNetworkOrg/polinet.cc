@@ -129,6 +129,14 @@ function EditUrlForm({
   return (
     <form {...getFormProps(form, {})} action={action}>
       <input type="hidden" name="currentShortCode" value={url.short_code} />
+      {url.aliases.map((alias, i) => (
+        <input
+          key={alias}
+          type="hidden"
+          name={`initialAliases[${i}]`}
+          value={alias}
+        />
+      ))}
       <div className="grid grid-cols-4 gap-x-4 py-4">
         <span
           id={fields.shortCode.errorId}

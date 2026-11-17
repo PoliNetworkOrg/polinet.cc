@@ -17,6 +17,6 @@ export default async function RedirectPage({ params }: Props) {
     notFound()
   }
 
-  urlService.incrementClickCount(shortCode).catch(console.error)
+  urlService.recordClick(target).catch(console.error)
   redirect(target.originalUrl, RedirectType.push)
 }

@@ -28,9 +28,23 @@ CREATE INDEX IF NOT EXISTS idx_url_tags_tag_name ON url_tags(tag_name);
 -- last one on the primary code. Clicks on aliases that were removed stay in
 -- click_count and are tallied in removed_alias_click_count, so they aren't
 -- mistaken for clicks on the primary code.
-ALTER TABLE urls ADD COLUMN IF NOT EXISTS last_clicked_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
-ALTER TABLE urls ADD COLUMN IF NOT EXISTS primary_last_clicked_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
-ALTER TABLE urls ADD COLUMN IF NOT EXISTS removed_alias_click_count INTEGER NOT NULL DEFAULT 0;
+--
+-- ALTER TABLE takes an ACCESS EXCLUSIVE lock on urls even when IF NOT EXISTS
+-- turns it into a no-op, and this script runs as one transaction on every
+-- start: behind any long reader (a backup) it would stall every redirect.
+-- Each column is added only when it is missing.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'urls' AND column_name = 'last_clicked_at') THEN
+    ALTER TABLE urls ADD COLUMN last_clicked_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'urls' AND column_name = 'primary_last_clicked_at') THEN
+    ALTER TABLE urls ADD COLUMN primary_last_clicked_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'urls' AND column_name = 'removed_alias_click_count') THEN
+    ALTER TABLE urls ADD COLUMN removed_alias_click_count INTEGER NOT NULL DEFAULT 0;
+  END IF;
+END $$;
 
 -- Alternate short codes that redirect to the same URL. urls.click_count stays
 -- the total across the primary code and every alias; each alias also keeps

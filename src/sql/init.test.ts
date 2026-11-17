@@ -1,6 +1,6 @@
 import fs from "node:fs"
 import path from "node:path"
-import { newDb } from "pg-mem"
+import { type IMemoryDb, newDb } from "pg-mem"
 import { describe, expect, it } from "vitest"
 
 const INIT_SQL = fs.readFileSync(path.join(__dirname, "init.sql"), "utf-8")
@@ -18,6 +18,33 @@ const PREVIOUS_URLS_SQL = `
   );
 `
 
+/**
+ * Runs init.sql on pg-mem, which has no PL/pgSQL: DO blocks are run here
+ * instead, supporting the only shape init.sql uses,
+ * `IF NOT EXISTS (<query>) THEN <statement>; END IF;`. Returns the guarded
+ * statements that ran.
+ */
+function runInitSql(db: IMemoryDb, sql: string): string[] {
+  const ran: string[] = []
+  const parts = sql.split(/DO \$\$([\s\S]*?)\$\$;/)
+  parts.forEach((part, i) => {
+    if (i % 2 === 0) {
+      if (part.trim()) db.public.none(part)
+      return
+    }
+    const guards = part.matchAll(
+      /IF NOT EXISTS \(([\s\S]*?)\)\s+THEN([\s\S]*?)END IF;/g
+    )
+    for (const [, condition, statement] of guards) {
+      if (db.public.many(condition).length === 0) {
+        db.public.none(statement)
+        ran.push(statement.trim())
+      }
+    }
+  })
+  return ran
+}
+
 describe("init.sql", () => {
   it("upgrades a database created before aliases, keeping its rows", async () => {
     // pg-mem flags the constraints of a CREATE TABLE IF NOT EXISTS that it
@@ -28,9 +55,10 @@ describe("init.sql", () => {
       "INSERT INTO urls (original_url, short_code, click_count) VALUES ('https://example.com', 'abc', 7)"
     )
 
-    db.public.none(INIT_SQL)
-    // runs on every start, so it must be idempotent
-    db.public.none(INIT_SQL)
+    expect(runInitSql(db, INIT_SQL)).toHaveLength(3)
+    // runs on every start: idempotent, and without ALTER TABLE (and its
+    // exclusive lock) once the columns exist
+    expect(runInitSql(db, INIT_SQL)).toEqual([])
 
     expect(
       db.public.many(

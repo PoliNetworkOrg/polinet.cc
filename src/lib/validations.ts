@@ -22,10 +22,19 @@ export function isHttpUrl(value: string): boolean {
 
 const tagValidator = z.string().trim().min(1).max(50)
 
+// each alias takes a lock while it is claimed, so keep the list bounded
+const MAX_ALIASES = 50
+const aliasesValidator = z
+  .array(shortCodeValidator)
+  .max(MAX_ALIASES, `At most ${MAX_ALIASES} aliases per URL`)
+
 export const createUrlSchema = z.object({
-  url: z.string().url("Invalid URL format"),
+  url: z
+    .string()
+    .url("Invalid URL format")
+    .refine(isHttpUrl, "URL must start with http:// or https://"),
   shortCode: shortCodeValidator.optional(),
-  aliases: z.array(shortCodeValidator).default([]),
+  aliases: aliasesValidator.default([]),
   tags: z.array(tagValidator).default([]),
 })
 
@@ -34,8 +43,7 @@ export type CreateUrlInput = z.infer<typeof createUrlSchema>
 // PUT /urls/:shortCode. Unlike tags, a missing `aliases` keeps the existing
 // ones, so clients written before aliases existed don't delete them.
 export const updateUrlSchema = createUrlSchema.extend({
-  aliases: z
-    .array(shortCodeValidator)
+  aliases: aliasesValidator
     .optional()
     .describe("Replaces the URL's aliases. Leave out to keep them unchanged."),
 })
@@ -45,6 +53,10 @@ export const editUrlSchema = createUrlSchema.extend({
   // it. `shortCode` is the (possibly renamed) value the user submitted.
   currentShortCode: shortCodeValidator,
   shortCode: shortCodeValidator,
+  // Hidden fields: the aliases the form was opened with. The action applies
+  // only what the user added or removed, so aliases added elsewhere since
+  // the list loaded are kept.
+  initialAliases: aliasesValidator.default([]),
 })
 
 export const aliasSchema = z.object({

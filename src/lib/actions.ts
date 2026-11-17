@@ -86,10 +86,17 @@ export async function editUrl(
 
   if (submission.status === "success") {
     try {
-      const { currentShortCode, shortCode, url, aliases, tags } =
-        submission.value
-      const updated = await urlService.updateUrl(currentShortCode, url, tags, {
+      const {
+        currentShortCode,
+        shortCode,
+        url,
         aliases,
+        initialAliases,
+        tags,
+      } = submission.value
+      const updated = await urlService.updateUrl(currentShortCode, url, tags, {
+        addAliases: aliases.filter((a) => !initialAliases.includes(a)),
+        removeAliases: initialAliases.filter((a) => !aliases.includes(a)),
         newShortCode: shortCode,
       })
       if (!updated) return withFormError(result, submission, "URL not found")

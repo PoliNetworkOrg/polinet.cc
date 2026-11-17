@@ -156,6 +156,12 @@ describe("UrlService", () => {
     expect(viaAlias).toEqual({
       urlId: record.id,
       originalUrl: "https://example.com",
+      aliasId: expect.any(Number),
+    })
+    expect(await service.resolveClickTarget("abc")).toEqual({
+      urlId: record.id,
+      originalUrl: "https://example.com",
+      aliasId: null,
     })
     expect(await service.resolveClickTarget("nope")).toBeNull()
   })
@@ -453,6 +459,58 @@ describe("UrlService", () => {
     ).rejects.toBeInstanceOf(CodeConflictError)
     await expect(service.renameShortCode("abc", "wiki")).rejects.toBeInstanceOf(
       CodeConflictError
+    )
+  })
+
+  it("prefers a primary code when a code is also another URL's alias", async () => {
+    const { UrlService } = await import("./url-service")
+    const service = new UrlService()
+    const a = await service.createShortUrl("https://a.com", "abc")
+    const b = await service.createShortUrl("https://b.com", "wiki")
+    // only reachable by bypassing the service, e.g. an older release
+    await pool.query(
+      "INSERT INTO url_aliases (url_id, alias_code) VALUES ($1, 'wiki')",
+      [a.id]
+    )
+
+    expect(await service.resolveClickTarget("wiki")).toMatchObject({
+      urlId: b.id,
+      aliasId: null,
+    })
+  })
+
+  it("applies alias additions and removals on top of the current aliases", async () => {
+    const { UrlService } = await import("./url-service")
+    const service = new UrlService()
+    const record = await service.createShortUrl(
+      "https://example.com",
+      "abc",
+      [],
+      ["wiki"]
+    )
+    // added elsewhere after the edit form loaded ["wiki"]
+    await service.addAlias(record.id, "docs")
+
+    const updated = await service.updateUrl("abc", "https://example.com", [], {
+      addAliases: ["new"],
+      removeAliases: ["wiki"],
+    })
+    expect(updated?.aliases.toSorted()).toEqual(["docs", "new"])
+  })
+
+  it("marks a URL as custom once its code is renamed or promoted", async () => {
+    const { UrlService } = await import("./url-service")
+    const service = new UrlService()
+    const random = await service.createShortUrl("https://a.com")
+    expect(random.is_custom).toBe(false)
+    expect(
+      (await service.renameShortCode(random.short_code, "hello"))?.is_custom
+    ).toBe(true)
+
+    const other = await service.createShortUrl("https://b.com")
+    await service.addAlias(other.id, "world")
+    expect((await service.promoteAlias(other.id, "world"))?.is_custom).toBe(
+      true
     )
   })
 
