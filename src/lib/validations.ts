@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { ApiTokenRole } from "./schemas"
 
 export const shortCodeValidator = z
   .string()
@@ -33,4 +34,13 @@ export const aliasSchema = z.object({
 
 export const tagSchema = z.object({
   tagName: tagValidator,
+})
+
+export const createApiTokenSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Name is required")
+    .max(100, "Name must be at most 100 characters"),
+  role: ApiTokenRole,
 })

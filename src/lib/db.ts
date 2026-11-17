@@ -1,3 +1,5 @@
+import fs from "node:fs/promises"
+import path from "node:path"
 import { Pool, type PoolConfig } from "pg"
 import { env } from "@/env"
 
@@ -24,59 +26,13 @@ export function getPool(): Pool {
 
 async function initDatabase() {
   const pool = getPool()
-
-  const createTableQuery = `
-    CREATE TABLE IF NOT EXISTS urls (
-      id SERIAL PRIMARY KEY,
-      is_custom BOOLEAN NOT NULL DEFAULT FALSE,
-      original_url TEXT NOT NULL,
-      short_code VARCHAR(25) UNIQUE NOT NULL,
-      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-      click_count INTEGER DEFAULT 0
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_short_code ON urls(short_code);
-    CREATE INDEX IF NOT EXISTS idx_created_at ON urls(created_at);
-    CREATE INDEX IF NOT EXISTS idx_updated_at ON urls(updated_at);
-    CREATE INDEX IF NOT EXISTS idx_click_count ON urls(click_count);
-  
-    CREATE TABLE IF NOT EXISTS url_tags (
-      url_id INTEGER NOT NULL REFERENCES urls(id) ON DELETE CASCADE,
-      tag_name VARCHAR(50) NOT NULL,
-      PRIMARY KEY (url_id, tag_name)
-    );
-    CREATE INDEX IF NOT EXISTS idx_url_tags_tag_name ON url_tags(tag_name);
-  `
+  const initSqlPath = path.join(process.cwd(), "src/sql/init.sql")
 
   try {
-    await pool.query(createTableQuery)
+    const initQuery = await fs.readFile(initSqlPath, "utf-8")
+    await pool.query(initQuery)
   } catch (error) {
     console.error("Error initializing database:", error)
-  }
-}
-
-async function migrateDatabase() {
-  const pool = getPool()
-
-  try {
-    await pool.query(`
-      ALTER TABLE urls ADD COLUMN IF NOT EXISTS last_clicked_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
-
-      CREATE TABLE IF NOT EXISTS url_aliases (
-        id SERIAL PRIMARY KEY,
-        url_id INTEGER NOT NULL REFERENCES urls(id) ON DELETE CASCADE,
-        alias_code VARCHAR(25) UNIQUE NOT NULL,
-        click_count INTEGER NOT NULL DEFAULT 0,
-        last_clicked_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE INDEX IF NOT EXISTS idx_alias_code ON url_aliases(alias_code);
-      CREATE INDEX IF NOT EXISTS idx_alias_url_id ON url_aliases(url_id);
-    `)
-  } catch (error) {
-    console.error("Error running database migrations:", error)
   }
 }
 
@@ -88,9 +44,8 @@ let init = false
 if (!init && !process.env.SKIP_ENV_VALIDATION) {
   init = true
   initDatabase()
-    .then(() => migrateDatabase())
     .then(() => {
-      console.log("Database initialized and migrated successfully")
+      console.log("Database initialized successfully")
     })
     .catch((error) => {
       console.error("Error during database initialization:", error)

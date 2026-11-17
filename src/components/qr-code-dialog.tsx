@@ -2,6 +2,7 @@
 
 import { Download } from "lucide-react"
 import { useMemo, useState } from "react"
+import { useDomain } from "@/components/domain-provider"
 import {
   getDefaultQrOptions,
   QR_OPTIONS,
@@ -29,6 +30,7 @@ export interface QrCodeDialogProps {
 }
 
 export function QrCodeDialog({ open, url, onOpenChange }: QrCodeDialogProps) {
+  const domain = useDomain()
   const [options, setOptions] = useState<QrOptions>(getDefaultQrOptions())
   const [imageData, setImageData] = useState<Blob | null>(null)
   const downloadUrl = useMemo(() => {
@@ -49,7 +51,7 @@ export function QrCodeDialog({ open, url, onOpenChange }: QrCodeDialogProps) {
   }
 
   if (!url) return null
-  const shortUrl = makeShortUrl(url)
+  const shortUrl = makeShortUrl(domain, url)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

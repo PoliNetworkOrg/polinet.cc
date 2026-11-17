@@ -6,6 +6,7 @@ import { X } from "lucide-react"
 import { nanoid } from "nanoid"
 import { useActionState, useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
+import { useDomain } from "@/components/domain-provider"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -17,7 +18,6 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { env } from "@/env"
 import { createUrl } from "@/lib/actions"
 import { getTagColor } from "@/lib/utils"
 import { createUrlSchema } from "@/lib/validations"
@@ -193,6 +193,7 @@ export function CreateUrlDialog({
   onOpenChange,
   onSuccess,
 }: CreateUrlDialogProps) {
+  const domain = useDomain()
   const [{ error, lastResult }, action, pending] = useActionState(createUrl, {
     error: null,
     lastResult: null,
@@ -308,7 +309,7 @@ export function CreateUrlDialog({
           <p className="text-xs">Preview: </p>
           <div className="text-sm p-4 border rounded-md border-border mb-4 mt-1 flex flex-col gap-1 bg-muted/50 text-muted-foreground">
             <p className="font-mono mx-auto">
-              https://{env.NEXT_PUBLIC_DOMAIN}/
+              https://{domain}/
               {isRandom ? (
                 <RandomText generate={randomCode} />
               ) : (
@@ -317,7 +318,7 @@ export function CreateUrlDialog({
             </p>
             {aliases.map((alias) => (
               <p key={alias} className="font-mono mx-auto text-xs opacity-70">
-                https://{env.NEXT_PUBLIC_DOMAIN}/{alias}
+                https://{domain}/{alias}
               </p>
             ))}
           </div>

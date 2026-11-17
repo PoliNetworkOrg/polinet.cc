@@ -25,6 +25,8 @@ import { Input } from "./ui/input"
 interface AliasStatsDialogProps {
   open: boolean
   url?: UrlRecord
+  /** viewers see the stats but cannot add, remove or promote aliases */
+  canModify: boolean
   onClose: () => void
   onChanged: () => void
 }
@@ -32,6 +34,7 @@ interface AliasStatsDialogProps {
 export function AliasStatsDialog({
   open,
   url,
+  canModify,
   onClose,
   onChanged,
 }: AliasStatsDialogProps) {
@@ -117,32 +120,36 @@ export function AliasStatsDialog({
             {url.short_code}
           </DialogTitle>
           <DialogDescription>
-            Manage aliases and see per-route click stats.
+            {canModify
+              ? "Manage aliases and see per-route click stats."
+              : "Per-route click stats for this URL and its aliases."}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex gap-2">
-          <Input
-            value={aliasInput}
-            onChange={(e) => setAliasInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault()
-                handleAdd()
-              }
-            }}
-            placeholder="Add alias short code…"
-            className="flex-1"
-          />
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleAdd}
-            disabled={pending === "add"}
-          >
-            Add
-          </Button>
-        </div>
+        {canModify && (
+          <div className="flex gap-2">
+            <Input
+              value={aliasInput}
+              onChange={(e) => setAliasInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault()
+                  handleAdd()
+                }
+              }}
+              placeholder="Add alias short code…"
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleAdd}
+              disabled={pending === "add"}
+            >
+              Add
+            </Button>
+          </div>
+        )}
 
         {loading ? (
           <p className="text-sm text-muted-foreground text-center py-6">
@@ -183,30 +190,34 @@ export function AliasStatsDialog({
                   <span className="w-24 text-right text-xs text-muted-foreground">
                     {relativeTime(a.last_clicked_at)}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => handlePromote(a.alias_code)}
-                    disabled={pending !== null}
-                    title={`Set /${a.alias_code} as the primary code`}
-                    aria-label={`Set /${a.alias_code} as the primary code`}
-                    className="text-muted-foreground hover:text-foreground disabled:opacity-40"
-                  >
-                    <ArrowUpToLine className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleRemove(a.alias_code)}
-                    disabled={pending !== null}
-                    title={`Remove /${a.alias_code}`}
-                    aria-label={`Remove /${a.alias_code}`}
-                    className="text-muted-foreground hover:text-destructive disabled:opacity-40"
-                  >
-                    {pending === a.alias_code ? (
-                      <X className="h-3.5 w-3.5" />
-                    ) : (
-                      <Trash2 className="h-3.5 w-3.5" />
-                    )}
-                  </button>
+                  {canModify && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handlePromote(a.alias_code)}
+                        disabled={pending !== null}
+                        title={`Set /${a.alias_code} as the primary code`}
+                        aria-label={`Set /${a.alias_code} as the primary code`}
+                        className="text-muted-foreground hover:text-foreground disabled:opacity-40"
+                      >
+                        <ArrowUpToLine className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemove(a.alias_code)}
+                        disabled={pending !== null}
+                        title={`Remove /${a.alias_code}`}
+                        aria-label={`Remove /${a.alias_code}`}
+                        className="text-muted-foreground hover:text-destructive disabled:opacity-40"
+                      >
+                        {pending === a.alias_code ? (
+                          <X className="h-3.5 w-3.5" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                    </>
+                  )}
                 </div>
               ))
             )}

@@ -9,6 +9,7 @@ import {
   Star,
   Trash2,
 } from "lucide-react"
+import { useDomain } from "@/components/domain-provider"
 import type { UrlRecord } from "@/lib/schemas"
 import { copyToClipboard, getTagColor, makeShortUrl } from "@/lib/utils"
 import { Badge } from "./ui/badge"
@@ -19,10 +20,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 export type UrlRecordRowProps = {
   url: UrlRecord
   onCopy: (url: UrlRecord) => void
-  onDelete: (url: UrlRecord) => void
-  onEdit: (url: UrlRecord) => void
   onQrCode: (url: UrlRecord) => void
+  /** opens the alias dialog, read-only for viewers */
   onAliasStats: (url: UrlRecord) => void
+  /** left out for viewers, who cannot modify URLs */
+  onDelete?: (url: UrlRecord) => void
+  /** left out for viewers, who cannot modify URLs */
+  onEdit?: (url: UrlRecord) => void
 }
 
 function TagBadges({ tags }: { tags: string[] }) {
@@ -61,7 +65,8 @@ export function MobileRow({
   onQrCode,
   onAliasStats,
 }: UrlRecordRowProps) {
-  const shortUrl = makeShortUrl(url)
+  const domain = useDomain()
+  const shortUrl = makeShortUrl(domain, url)
   return (
     <div className="flex flex-col gap-1 border rounded-md py-2 px-4">
       <div className="flex justify-start gap-2 items-center">
@@ -143,12 +148,16 @@ export function MobileRow({
           <Button variant="ghost" size="icon" onClick={() => onQrCode(url)}>
             <QrCode />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => onEdit(url)}>
-            <Edit />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => onDelete(url)}>
-            <Trash2 className="stroke-destructive" />
-          </Button>
+          {onEdit && (
+            <Button variant="ghost" size="icon" onClick={() => onEdit(url)}>
+              <Edit />
+            </Button>
+          )}
+          {onDelete && (
+            <Button variant="ghost" size="icon" onClick={() => onDelete(url)}>
+              <Trash2 className="stroke-destructive" />
+            </Button>
+          )}
         </div>
       </div>
     </div>
@@ -156,7 +165,8 @@ export function MobileRow({
 }
 
 export function UrlRecordRow({ url, ...props }: UrlRecordRowProps) {
-  const shortUrl = makeShortUrl(url)
+  const domain = useDomain()
+  const shortUrl = makeShortUrl(domain, url)
   return (
     <TableRow key={url.id} className="max-sm:hidden">
       <TableCell>
@@ -243,16 +253,24 @@ export function UrlRecordRow({ url, ...props }: UrlRecordRowProps) {
           >
             <QrCode />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => props.onEdit(url)}>
-            <Edit />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => props.onDelete(url)}
-          >
-            <Trash2 className="stroke-destructive" />
-          </Button>
+          {props.onEdit && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => props.onEdit?.(url)}
+            >
+              <Edit />
+            </Button>
+          )}
+          {props.onDelete && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => props.onDelete?.(url)}
+            >
+              <Trash2 className="stroke-destructive" />
+            </Button>
+          )}
         </div>
       </TableCell>
     </TableRow>

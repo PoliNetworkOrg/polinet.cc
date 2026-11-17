@@ -3,36 +3,52 @@ import { z } from "zod"
 
 const PORT = 6111
 
-const domainSchema = z
-  .string()
-  .default(`polinet.cc`)
-  .describe(
-    "This is the domain to use as shortener. API available at /api and Admin dashboard at /admin"
-  )
-
 // coerce is needed for non-string values, because k8s supports only string env
 export const env = createEnv({
-  client: {
-    NEXT_PUBLIC_DOMAIN: domainSchema,
-  },
+  // Everything below is server-side on purpose. `NEXT_PUBLIC_` variables are
+  // inlined into the bundle by `next build`, which would bake the values of
+  // whoever built the image into it and force every self-hoster to rebuild.
+  // Values the browser needs (the shortener domain) are read on the server and
+  // handed to client components as props instead.
+  client: {},
   server: {
     PORT: z.coerce.number().min(1).max(65535).default(PORT),
     NODE_ENV: z.enum(["development", "production"]).default("development"),
-    // PUBLIC_URL: z.string().default(`https://polinet.cc`),
+    SESSION_SECRET: z.string().min(32),
     // LOG_LEVEL: z.string().default("DEBUG"),
-    DOMAIN: domainSchema,
+    DOMAIN: z
+      .string()
+      .default(`polinet.cc`)
+      .describe(
+        "This is the domain to use as shortener. API available at /api and Admin dashboard at /admin"
+      ),
     DB_HOST: z.string().min(1),
     DB_PORT: z.coerce.number().min(1).max(65535).default(5432),
     DB_USER: z.string().min(1),
     DB_PASS: z.string().min(1),
     DB_NAME: z.string().min(3).default("url_shortener"),
     DB_URL: z.string().url().optional(),
+    // OIDC login is optional: leave these empty to disable the /admin auth flow
+    // entirely.
+    OIDC_URL: z.string().url().optional(),
+    OIDC_CLIENT_ID: z.string().optional(),
+    OIDC_SCOPE: z.string().default("openid profile email"),
+    // Role mapping: ROLES_CLAIM is the OIDC claim (from the ID token or the
+    // userinfo endpoint) holding roles or an object with a permissions array.
+    // ROLE_ADMIN/ROLE_VIEWER are the values mapped to the internal roles. When
+    // any of the three is left unset, every logged in user is an admin.
+    ROLES_CLAIM: z.string().optional(),
+    ROLE_ADMIN: z.string().optional(),
+    ROLE_VIEWER: z.string().optional(),
   },
 
   runtimeEnv: {
     PORT: process.env.PORT,
     DOMAIN: process.env.DOMAIN,
-    NEXT_PUBLIC_DOMAIN: process.env.DOMAIN,
+    OIDC_URL: process.env.OIDC_URL,
+    OIDC_CLIENT_ID: process.env.OIDC_CLIENT_ID,
+    OIDC_SCOPE: process.env.OIDC_SCOPE,
+    SESSION_SECRET: process.env.SESSION_SECRET,
     DB_HOST: process.env.DB_HOST,
     DB_PORT: process.env.DB_PORT,
     DB_USER: process.env.DB_USER,
@@ -40,6 +56,9 @@ export const env = createEnv({
     DB_NAME: process.env.DB_NAME,
     NODE_ENV: process.env.NODE_ENV,
     DB_URL: process.env.DB_URL,
+    ROLES_CLAIM: process.env.ROLES_CLAIM,
+    ROLE_ADMIN: process.env.ROLE_ADMIN,
+    ROLE_VIEWER: process.env.ROLE_VIEWER,
   },
 
   /**
