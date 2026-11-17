@@ -2,7 +2,7 @@ import { createNextHandler } from "@ts-rest/serverless/next"
 import { apiTokenService, parseBearerToken } from "@/lib/api-tokens"
 import { canRead, canWrite, isAuthEnabled, type Role } from "@/lib/auth"
 import { contract } from "@/lib/contract"
-import { urlService } from "@/lib/url-service"
+import { CodeConflictError, urlService } from "@/lib/url-service"
 
 /** Resolves the caller's role from the `Authorization` header, if any. */
 async function resolveRole(authorization?: string): Promise<Role | null> {
@@ -49,6 +49,17 @@ async function authorize(
   return { ok: true }
 }
 
+/**
+ * A code that is already taken is the caller's mistake (400); anything else
+ * is rethrown and answered as a 500 without exposing the database error.
+ */
+function conflictResponse(error: unknown) {
+  if (error instanceof CodeConflictError) {
+    return { status: 400 as const, body: { error: error.message } }
+  }
+  throw error
+}
+
 const handler = createNextHandler(
   contract,
   {
@@ -78,20 +89,15 @@ const handler = createNextHandler(
         const urlRecord = await urlService.createShortUrl(
           body.url,
           body.shortCode,
-          body.tags
+          body.tags,
+          body.aliases
         )
         return {
           status: 201,
           body: urlRecord,
         }
       } catch (error) {
-        return {
-          status: 400,
-          body: {
-            error:
-              error instanceof Error ? error.message : "Failed to create URL",
-          },
-        }
+        return conflictResponse(error)
       }
     },
     getUrl: async ({ params, headers }) => {
@@ -114,20 +120,25 @@ const handler = createNextHandler(
       const auth = await authorize(headers, canWrite)
       if (!auth.ok) return auth.response
 
-      const urlRecord = await urlService.updateUrl(
-        params.shortCode,
-        body.url,
-        body.tags
-      )
-      if (!urlRecord) {
-        return {
-          status: 404,
-          body: { error: "URL not found" },
+      try {
+        const urlRecord = await urlService.updateUrl(
+          params.shortCode,
+          body.url,
+          body.tags,
+          { aliases: body.aliases }
+        )
+        if (!urlRecord) {
+          return {
+            status: 404,
+            body: { error: "URL not found" },
+          }
         }
-      }
-      return {
-        status: 200,
-        body: urlRecord,
+        return {
+          status: 200,
+          body: urlRecord,
+        }
+      } catch (error) {
+        return conflictResponse(error)
       }
     },
     deleteUrl: async ({ params, headers }) => {
@@ -144,6 +155,101 @@ const handler = createNextHandler(
       return {
         status: 204,
         body: undefined,
+      }
+    },
+    addAlias: async ({ params, body, headers }) => {
+      const auth = await authorize(headers, canWrite)
+      if (!auth.ok) return auth.response
+
+      const urlRecord = await urlService.getUrlByShortCode(params.shortCode)
+      if (!urlRecord) {
+        return {
+          status: 404,
+          body: { error: "URL not found" },
+        }
+      }
+      try {
+        const added = await urlService.addAlias(urlRecord.id, body.aliasCode)
+        if (!added) {
+          return {
+            status: 404,
+            body: { error: "URL not found" },
+          }
+        }
+        return {
+          status: 201,
+          body: undefined,
+        }
+      } catch (error) {
+        return conflictResponse(error)
+      }
+    },
+    removeAlias: async ({ params, headers }) => {
+      const auth = await authorize(headers, canWrite)
+      if (!auth.ok) return auth.response
+
+      const urlRecord = await urlService.getUrlByShortCode(params.shortCode)
+      if (!urlRecord) {
+        return {
+          status: 404,
+          body: { error: "URL not found" },
+        }
+      }
+      const removed = await urlService.removeAlias(
+        urlRecord.id,
+        params.aliasCode
+      )
+      if (!removed) {
+        return {
+          status: 404,
+          body: { error: "Alias not found" },
+        }
+      }
+      return {
+        status: 204,
+        body: undefined,
+      }
+    },
+    promoteAlias: async ({ params, headers }) => {
+      const auth = await authorize(headers, canWrite)
+      if (!auth.ok) return auth.response
+
+      const urlRecord = await urlService.getUrlByShortCode(params.shortCode)
+      if (!urlRecord) {
+        return {
+          status: 404,
+          body: { error: "URL not found" },
+        }
+      }
+      const promoted = await urlService.promoteAlias(
+        urlRecord.id,
+        params.aliasCode
+      )
+      if (!promoted) {
+        return {
+          status: 404,
+          body: { error: "Alias not found" },
+        }
+      }
+      return {
+        status: 200,
+        body: promoted,
+      }
+    },
+    getAliasStats: async ({ params, headers }) => {
+      const auth = await authorize(headers, canRead)
+      if (!auth.ok) return auth.response
+
+      const stats = await urlService.getAliasStats(params.shortCode)
+      if (!stats) {
+        return {
+          status: 404,
+          body: { error: "URL not found" },
+        }
+      }
+      return {
+        status: 200,
+        body: stats,
       }
     },
     getAllTags: async ({ headers }) => {

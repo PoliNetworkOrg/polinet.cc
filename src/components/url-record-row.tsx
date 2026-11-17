@@ -3,6 +3,7 @@ import {
   Copy,
   Diamond,
   Edit,
+  GitBranch,
   Pointer,
   QrCode,
   Star,
@@ -11,6 +12,7 @@ import {
 import { useDomain } from "@/components/domain-provider"
 import type { UrlRecord } from "@/lib/schemas"
 import { copyToClipboard, getTagColor, makeShortUrl } from "@/lib/utils"
+import { Badge } from "./ui/badge"
 import { Button } from "./ui/button"
 import { TableCell, TableRow } from "./ui/table"
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
@@ -19,6 +21,8 @@ export type UrlRecordRowProps = {
   url: UrlRecord
   onCopy: (url: UrlRecord) => void
   onQrCode: (url: UrlRecord) => void
+  /** opens the alias dialog, read-only for viewers */
+  onAliasStats: (url: UrlRecord) => void
   /** left out for viewers, who cannot modify URLs */
   onDelete?: (url: UrlRecord) => void
   /** left out for viewers, who cannot modify URLs */
@@ -59,6 +63,7 @@ export function MobileRow({
   onDelete,
   onEdit,
   onQrCode,
+  onAliasStats,
 }: UrlRecordRowProps) {
   const domain = useDomain()
   const shortUrl = makeShortUrl(domain, url)
@@ -80,6 +85,22 @@ export function MobileRow({
           <span className="max-sm:hidden">{shortUrl}</span>
           <span className="sm:hidden">/{url.short_code}</span>
         </a>
+        {url.aliases.length > 0 && (
+          <Badge
+            variant="outline"
+            asChild
+            className="gap-1 cursor-pointer hover:bg-accent transition-colors"
+          >
+            <button
+              type="button"
+              onClick={() => onAliasStats(url)}
+              title={`+${url.aliases.length} aliases — ${url.click_count} total clicks`}
+            >
+              <GitBranch className="h-3 w-3" />
+              {url.aliases.length}
+            </button>
+          </Badge>
+        )}
         <Button variant="ghost" size="icon" onClick={() => onCopy(url)}>
           <Copy />
         </Button>
@@ -116,6 +137,14 @@ export function MobileRow({
           {url.created_at.toLocaleString()}
         </span>
         <div className="flex justify-end items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onAliasStats(url)}
+            title="Manage aliases"
+          >
+            <GitBranch />
+          </Button>
           <Button variant="ghost" size="icon" onClick={() => onQrCode(url)}>
             <QrCode />
           </Button>
@@ -157,6 +186,22 @@ export function UrlRecordRow({ url, ...props }: UrlRecordRowProps) {
           >
             {shortUrl}
           </a>
+          {url.aliases.length > 0 && (
+            <Badge
+              variant="outline"
+              asChild
+              className="gap-1 cursor-pointer hover:bg-accent transition-colors"
+            >
+              <button
+                type="button"
+                onClick={() => props.onAliasStats(url)}
+                title={`+${url.aliases.length} aliases — ${url.click_count} total clicks`}
+              >
+                <GitBranch className="h-3 w-3" />
+                {url.aliases.length}
+              </button>
+            </Badge>
+          )}
           <TagBadges tags={url.tags ?? []} />
           <Button variant="ghost" size="icon" onClick={() => props.onCopy(url)}>
             <Copy />
@@ -193,6 +238,14 @@ export function UrlRecordRow({ url, ...props }: UrlRecordRowProps) {
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => props.onAliasStats(url)}
+            title="Manage aliases"
+          >
+            <GitBranch />
+          </Button>
           <Button
             variant="ghost"
             size="icon"

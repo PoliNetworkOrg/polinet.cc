@@ -24,6 +24,42 @@ CREATE TABLE IF NOT EXISTS url_tags (
 
 CREATE INDEX IF NOT EXISTS idx_url_tags_tag_name ON url_tags(tag_name);
 
+-- last_clicked_at is the last click on any route, primary_last_clicked_at the
+-- last one on the primary code. Clicks on aliases that were removed stay in
+-- click_count and are tallied in removed_alias_click_count, so they aren't
+-- mistaken for clicks on the primary code.
+--
+-- ALTER TABLE takes an ACCESS EXCLUSIVE lock on urls even when IF NOT EXISTS
+-- turns it into a no-op, and this script runs as one transaction on every
+-- start: behind any long reader (a backup) it would stall every redirect.
+-- Each column is added only when it is missing.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'urls' AND column_name = 'last_clicked_at') THEN
+    ALTER TABLE urls ADD COLUMN last_clicked_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'urls' AND column_name = 'primary_last_clicked_at') THEN
+    ALTER TABLE urls ADD COLUMN primary_last_clicked_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'urls' AND column_name = 'removed_alias_click_count') THEN
+    ALTER TABLE urls ADD COLUMN removed_alias_click_count INTEGER NOT NULL DEFAULT 0;
+  END IF;
+END $$;
+
+-- Alternate short codes that redirect to the same URL. urls.click_count stays
+-- the total across the primary code and every alias; each alias also keeps
+-- its own counter.
+CREATE TABLE IF NOT EXISTS url_aliases (
+  id SERIAL PRIMARY KEY,
+  url_id INTEGER NOT NULL REFERENCES urls(id) ON DELETE CASCADE,
+  alias_code VARCHAR(25) UNIQUE NOT NULL,
+  click_count INTEGER NOT NULL DEFAULT 0,
+  last_clicked_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_alias_url_id ON url_aliases(url_id);
+
 -- Personal API tokens used to authenticate REST API requests, plus one
 -- special "session" token per user that lets the /admin dashboard itself
 -- call the REST API on the logged-in user's behalf (is_session = TRUE,

@@ -1,7 +1,17 @@
 import { initContract } from "@ts-rest/core"
 import z from "zod"
-import { GetUrlsQueryParams, PaginatedUrlsResponse, URLRecord } from "./schemas"
-import { createUrlSchema, tagSchema } from "./validations"
+import {
+  AliasStatsResult,
+  GetUrlsQueryParams,
+  PaginatedUrlsResponse,
+  URLRecord,
+} from "./schemas"
+import {
+  aliasSchema,
+  createUrlSchema,
+  tagSchema,
+  updateUrlSchema,
+} from "./validations"
 
 const c = initContract()
 
@@ -52,6 +62,7 @@ export const contract = c.router(
       body: createUrlSchema,
       responses: {
         201: URLRecord,
+        400: APIError,
         403: APIError,
       },
       summary: "Create a new short URL",
@@ -60,9 +71,10 @@ export const contract = c.router(
     updateUrl: {
       method: "PUT",
       path: "/urls/:shortCode",
-      body: createUrlSchema,
+      body: updateUrlSchema,
       responses: {
         200: URLRecord,
+        400: APIError,
         403: APIError,
         404: APIError,
       },
@@ -79,6 +91,52 @@ export const contract = c.router(
       },
       summary: "Delete a short URL",
       description: WRITE_DESCRIPTION,
+    },
+    addAlias: {
+      method: "POST",
+      path: "/urls/:shortCode/aliases",
+      body: aliasSchema,
+      responses: {
+        201: z.void(),
+        400: APIError,
+        403: APIError,
+        404: APIError,
+      },
+      summary: "Add an alias to a short URL",
+      description: WRITE_DESCRIPTION,
+    },
+    removeAlias: {
+      method: "DELETE",
+      path: "/urls/:shortCode/aliases/:aliasCode",
+      responses: {
+        204: z.void(),
+        403: APIError,
+        404: APIError,
+      },
+      summary: "Remove an alias from a short URL",
+      description: WRITE_DESCRIPTION,
+    },
+    promoteAlias: {
+      method: "POST",
+      path: "/urls/:shortCode/aliases/:aliasCode/promote",
+      body: c.noBody(),
+      responses: {
+        200: URLRecord,
+        403: APIError,
+        404: APIError,
+      },
+      summary: "Promote an alias to be the primary short code",
+      description: WRITE_DESCRIPTION,
+    },
+    getAliasStats: {
+      method: "GET",
+      path: "/urls/:shortCode/alias-stats",
+      responses: {
+        200: AliasStatsResult,
+        404: APIError,
+      },
+      summary: "Get per-route click stats for a URL's primary code and aliases",
+      description: READ_DESCRIPTION,
     },
     getAllTags: {
       method: "GET",

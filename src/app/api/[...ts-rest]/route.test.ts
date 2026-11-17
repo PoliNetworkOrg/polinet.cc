@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server"
 import type { Pool } from "pg"
-import { newDb } from "pg-mem"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { newTestDb } from "@/test/pg-mem"
 
 const SCHEMA_SQL = `
   CREATE TABLE urls (
@@ -11,7 +11,19 @@ const SCHEMA_SQL = `
     short_code VARCHAR(25) UNIQUE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    click_count INTEGER DEFAULT 0
+    click_count INTEGER DEFAULT 0,
+    last_clicked_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    primary_last_clicked_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    removed_alias_click_count INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE TABLE url_aliases (
+    id SERIAL PRIMARY KEY,
+    url_id INTEGER NOT NULL REFERENCES urls(id) ON DELETE CASCADE,
+    alias_code VARCHAR(25) UNIQUE NOT NULL,
+    click_count INTEGER NOT NULL DEFAULT 0,
+    last_clicked_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
   );
 
   CREATE TABLE url_tags (
@@ -37,7 +49,7 @@ vi.mock("@/lib/auth", async (importOriginal) => {
 describe("DELETE /api/urls/:shortCode/tags/:tagName", () => {
   beforeEach(async () => {
     vi.resetModules()
-    const mem = newDb()
+    const mem = newTestDb()
     const pg = mem.adapters.createPg()
     pool = new pg.Pool() as unknown as Pool
     await pool.query(SCHEMA_SQL)
