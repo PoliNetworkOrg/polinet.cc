@@ -1,7 +1,7 @@
 "use server"
 
 import type { SubmissionResult } from "@conform-to/react"
-import { parseWithZod } from "@conform-to/zod"
+import { parseWithZod } from "@conform-to/zod/v4"
 import { apiTokenService, type TokenOwner } from "./api-tokens"
 import { canRead, getRole, getSession, type Role } from "./auth"
 import { type ApiTokenSummary, CreatedApiToken } from "./schemas"

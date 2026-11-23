@@ -1,7 +1,7 @@
 "use client"
 
 import { getFormProps, getInputProps, useForm } from "@conform-to/react"
-import { getZodConstraint, parseWithZod } from "@conform-to/zod"
+import { getZodConstraint, parseWithZod } from "@conform-to/zod/v4"
 import { X } from "lucide-react"
 import { nanoid } from "nanoid"
 import { useActionState, useCallback, useEffect, useRef, useState } from "react"

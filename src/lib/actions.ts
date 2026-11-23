@@ -1,7 +1,7 @@
 "use server"
 
 import type { SubmissionResult } from "@conform-to/react"
-import { parseWithZod } from "@conform-to/zod"
+import { parseWithZod } from "@conform-to/zod/v4"
 import { canRead, canWrite, getRole } from "./auth"
 import type { AliasStatsResult, UrlRecord } from "./schemas"
 import { CodeConflictError, urlService } from "./url-service"
