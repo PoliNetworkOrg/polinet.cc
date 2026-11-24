@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   experimental: {
     turbopackRustReactCompiler: true,
+    // One build worker: the default (one per core) only adds memory at this number of static pages.
+    cpus: 1,
   },
 }
 
