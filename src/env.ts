@@ -27,10 +27,10 @@ export const env = createEnv({
     DB_USER: z.string().min(1),
     DB_PASS: z.string().min(1),
     DB_NAME: z.string().min(3).default("url_shortener"),
-    DB_URL: z.string().url().optional(),
+    DB_URL: z.url().optional(),
     // OIDC login is optional: leave these empty to disable the /admin auth flow
     // entirely.
-    OIDC_URL: z.string().url().optional(),
+    OIDC_URL: z.url().optional(),
     OIDC_CLIENT_ID: z.string().optional(),
     OIDC_SCOPE: z.string().default("openid profile email"),
     // Role mapping: ROLES_CLAIM is the OIDC claim (from the ID token or the

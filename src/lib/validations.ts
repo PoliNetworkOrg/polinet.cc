@@ -10,7 +10,7 @@ export const shortCodeValidator = z
     "Short code can only contain letters, numbers, hyphens and underscores"
   )
 
-/** Redirect targets must be http(s); `z.string().url()` also lets `javascript:` through. */
+/** Redirect targets must be http(s); `z.url()` also lets `javascript:` through. */
 export function isHttpUrl(value: string): boolean {
   try {
     const { protocol } = new URL(value)
@@ -30,7 +30,6 @@ const aliasesValidator = z
 
 export const createUrlSchema = z.object({
   url: z
-    .string()
     .url("Invalid URL format")
     .refine(isHttpUrl, "URL must start with http:// or https://"),
   shortCode: shortCodeValidator.optional(),

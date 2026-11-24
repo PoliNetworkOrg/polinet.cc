@@ -1,7 +1,7 @@
 "use client"
 
 import { getFormProps, getInputProps, useForm } from "@conform-to/react"
-import { getZodConstraint, parseWithZod } from "@conform-to/zod"
+import { getZodConstraint, parseWithZod } from "@conform-to/zod/v4"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Copy, KeyRound, Trash2 } from "lucide-react"
 import { useActionState, useEffect, useRef, useState } from "react"
